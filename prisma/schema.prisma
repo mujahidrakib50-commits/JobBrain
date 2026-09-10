@@ -14,6 +14,8 @@ model User {
   profile      Profile?
   apiKeys      ApiKey[]
   tasks        JobTask[]
+  gmailAccount GmailAccount?
+  jobEmails    JobEmail[]
   createdAt    DateTime    @default(now())
 }
 
@@ -87,3 +89,46 @@ model QueueState {
   isRunning Boolean  @default(false)
   updatedAt DateTime @updatedAt
 }
+
+model GmailAccount {
+  id              String    @id @default(cuid())
+  userId          String    @unique
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  email           String
+  accessTokenEnc  String
+  refreshTokenEnc String?
+  expiresAt       DateTime?
+  lastSyncAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model JobEmail {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messageId   String
+  threadId    String?
+  sender      String
+  senderEmail String
+  subject     String
+  snippet     String
+  bodyText    String?
+  category    String   // REJECTION | POSITIVE | JOB_MATCH
+  receivedAt  DateTime
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, messageId])
+  @@index([userId, category])
+  @@index([userId, receivedAt])
+}
+
+model GmailOAuthConfig {
+  id           String   @id @default("global")
+  clientId     String?
+  clientSecret String?
+  updatedAt    DateTime @updatedAt
+}
+

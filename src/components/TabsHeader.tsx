@@ -1,8 +1,8 @@
 "use client";
 
-import { Clock, HelpCircle, CheckCircle2 } from "lucide-react";
+import { Clock, HelpCircle, CheckCircle2, Mail } from "lucide-react";
 
-export type TabType = "applying" | "waiting" | "applied";
+export type TabType = "applying" | "waiting" | "applied" | "inbox";
 
 interface TabsHeaderProps {
   activeTab: TabType;
@@ -11,6 +11,7 @@ interface TabsHeaderProps {
     applying: number;
     waiting: number;
     applied: number;
+    inbox?: number;
   };
 }
 
@@ -45,6 +46,16 @@ export function TabsHeader({ activeTab, onChangeTab, counts }: TabsHeaderProps) 
       badgeActive: "bg-accent-emerald text-gray-950 font-bold",
       badgeInactive: "bg-surface-2 text-gray-400",
       borderActive: "border-accent-emerald text-white",
+    },
+    {
+      id: "inbox" as TabType,
+      label: "Inbox",
+      count: counts.inbox ?? 0,
+      icon: Mail,
+      color: "text-purple-400",
+      badgeActive: "bg-purple-500 text-white font-bold",
+      badgeInactive: "bg-surface-2 text-gray-400",
+      borderActive: "border-purple-500 text-white",
     },
   ];
 

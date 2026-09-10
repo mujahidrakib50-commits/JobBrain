@@ -7,6 +7,7 @@ import { TabsHeader, TabType } from "@/components/TabsHeader";
 import { ApplyingTab, Task } from "@/components/ApplyingTab";
 import { WaitingTab } from "@/components/WaitingTab";
 import { AppliedTab } from "@/components/AppliedTab";
+import { InboxTab } from "@/components/InboxTab";
 import { ProfileModal } from "@/components/ProfileModal";
 import { BrainModal } from "@/components/BrainModal";
 
@@ -16,9 +17,21 @@ export default function DashboardPage() {
   const [isQueueRunning, setIsQueueRunning] = useState(false);
   const [activeBrain, setActiveBrain] = useState<any>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [unreadEmailsCount, setUnreadEmailsCount] = useState<number>(0);
 
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [brainModalOpen, setBrainModalOpen] = useState(false);
+
+  // Check URL query parameters for active tab (e.g. ?tab=inbox after OAuth redirect)
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get("tab");
+      if (tabParam === "inbox" || tabParam === "applying" || tabParam === "waiting" || tabParam === "applied") {
+        setActiveTab(tabParam as TabType);
+      }
+    }
+  }, []);
 
   const fetchStatus = useCallback(async () => {
     try {
@@ -42,6 +55,13 @@ export default function DashboardPage() {
       if (tRes.ok) {
         const tData = await tRes.json();
         setTasks(tData.tasks || []);
+      }
+
+      // Fetch unread inbox count
+      const inRes = await fetch("/api/inbox?limit=1");
+      if (inRes.ok) {
+        const inData = await inRes.json();
+        setUnreadEmailsCount(inData.counts?.unread || 0);
       }
     } catch (err) {
       console.error("Fetch status error:", err);
@@ -141,6 +161,7 @@ export default function DashboardPage() {
       <Header
         onOpenProfile={() => setProfileModalOpen(true)}
         onOpenBrain={() => setBrainModalOpen(true)}
+        onOpenInbox={() => setActiveTab("inbox")}
         isQueueRunning={isQueueRunning}
         onToggleQueue={handleToggleQueue}
         activeBrain={activeBrain}
@@ -160,6 +181,7 @@ export default function DashboardPage() {
             applying: applyingTasks.length + failedTasks.length,
             waiting: waitingTasks.length,
             applied: appliedTasks.length,
+            inbox: unreadEmailsCount,
           }}
         />
 
@@ -187,6 +209,10 @@ export default function DashboardPage() {
 
         {activeTab === "applied" && (
           <AppliedTab tasks={appliedTasks} onDeleteTask={handleDeleteTask} />
+        )}
+
+        {activeTab === "inbox" && (
+          <InboxTab onRefreshBadge={fetchStatus} />
         )}
       </main>
 

@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Cpu, Play, Square, Settings, User, Key, CheckCircle, ChevronDown } from "lucide-react";
+import { Cpu, Play, Square, Settings, User, Key, CheckCircle, ChevronDown, Mail } from "lucide-react";
 
 interface HeaderProps {
   onOpenProfile: () => void;
   onOpenBrain: () => void;
+  onOpenInbox?: () => void;
   isQueueRunning: boolean;
   onToggleQueue: () => void;
   avatarUrl?: string | null;
@@ -20,6 +21,7 @@ interface HeaderProps {
 export function Header({
   onOpenProfile,
   onOpenBrain,
+  onOpenInbox,
   isQueueRunning,
   onToggleQueue,
   avatarUrl,
@@ -164,6 +166,24 @@ export function Header({
                   <div className="text-[11px] text-gray-400">Models & intelligence</div>
                 </div>
               </button>
+
+              {onOpenInbox && (
+                <button
+                  onClick={() => {
+                    setDropdownOpen(false);
+                    onOpenInbox();
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs text-gray-200 hover:bg-surface-2 hover:text-white text-left transition border-t border-surface-border/50"
+                >
+                  <div className="w-6 h-6 rounded-md bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+                    <Mail className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <div className="font-medium">Gmail Monitor</div>
+                    <div className="text-[11px] text-gray-400">Rejections & responses</div>
+                  </div>
+                </button>
+              )}
             </div>
           )}
         </div>
