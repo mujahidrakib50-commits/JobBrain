@@ -1,0 +1,15 @@
+services:
+  app:
+    build: .
+    container_name: jobbrain_app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=file:./dev.db
+      - APP_SECRET=jobbrain_secure_master_key_32_bytes_long_123456
+      - NEXTAUTH_SECRET=jobbrain_jwt_secret_token_change_in_prod_abcdef
+      - NEXT_PUBLIC_APP_URL=http://localhost:3000
+    volumes:
+      - ./uploads:/app/uploads
+      - ./prisma:/app/prisma

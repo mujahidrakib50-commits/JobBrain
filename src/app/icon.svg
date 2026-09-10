@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b0f19" />
+      <stop offset="50%" stop-color="#111827" />
+      <stop offset="100%" stop-color="#070a12" />
+    </linearGradient>
+    <linearGradient id="brainGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6" />
+      <stop offset="50%" stop-color="#6366f1" />
+      <stop offset="100%" stop-color="#10b981" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background rounded rect -->
+  <rect width="128" height="128" rx="28" fill="url(#bg)" stroke="#1e293b" stroke-width="2" />
+
+  <!-- Brain Circuit Network Path -->
+  <g filter="url(#glow)">
+    <!-- Central Synapse Stem -->
+    <path d="M64 26 V102" stroke="url(#brainGrad)" stroke-width="3" stroke-linecap="round" stroke-dasharray="2 4" opacity="0.6"/>
+
+    <!-- Left Hemisphere Circuits -->
+    <path d="M64 34 C48 34, 32 44, 32 60 C32 72, 42 82, 54 86 C54 94, 60 98, 64 98"
+          fill="none" stroke="#3b82f6" stroke-width="4" stroke-linecap="round" />
+    <path d="M64 48 C50 48, 44 56, 44 64 C44 72, 52 76, 64 78"
+          fill="none" stroke="#60a5fa" stroke-width="3" stroke-linecap="round" />
+    <path d="M44 64 H56" stroke="#38bdf8" stroke-width="3" stroke-linecap="round" />
+
+    <!-- Right Hemisphere Circuits -->
+    <path d="M64 34 C80 34, 96 44, 96 60 C96 72, 86 82, 74 86 C74 94, 68 98, 64 98"
+          fill="none" stroke="#10b981" stroke-width="4" stroke-linecap="round" />
+    <path d="M64 48 C78 48, 84 56, 84 64 C84 72, 76 76, 64 78"
+          fill="none" stroke="#34d399" stroke-width="3" stroke-linecap="round" />
+    <path d="M84 64 H72" stroke="#6ee7b7" stroke-width="3" stroke-linecap="round" />
+
+    <!-- Glowing Nodes / Synapses -->
+    <circle cx="64" cy="34" r="4.5" fill="#60a5fa" />
+    <circle cx="32" cy="60" r="4" fill="#3b82f6" />
+    <circle cx="96" cy="60" r="4" fill="#10b981" />
+    <circle cx="44" cy="64" r="3.5" fill="#38bdf8" />
+    <circle cx="84" cy="64" r="3.5" fill="#34d399" />
+    <circle cx="54" cy="86" r="3.5" fill="#818cf8" />
+    <circle cx="74" cy="86" r="3.5" fill="#34d399" />
+    <circle cx="64" cy="98" r="4" fill="#10b981" />
+    <circle cx="64" cy="64" r="5" fill="#ffffff" />
+  </g>
+</svg>

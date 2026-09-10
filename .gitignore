@@ -1,0 +1,17 @@
+node_modules
+.next
+out
+build
+dist
+*.log
+.env
+.env.local
+.env.production
+dev.db
+dev.db-journal
+*.db
+*.db-journal
+prisma/*.db
+prisma/*.db-journal
+uploads
+uploads/*

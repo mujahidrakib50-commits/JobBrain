@@ -1,0 +1,89 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String      @id @default(cuid())
+  email        String      @unique
+  passwordHash String
+  profile      Profile?
+  apiKeys      ApiKey[]
+  tasks        JobTask[]
+  createdAt    DateTime    @default(now())
+}
+
+model Profile {
+  id          String         @id @default(cuid())
+  userId      String         @unique
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  avatarUrl   String?
+  fields      ProfileField[]
+  attachments Attachment[]
+}
+
+model ProfileField {
+  id        String   @id @default(cuid())
+  profileId String
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  question  String
+  answer    String
+  embedding String?  // JSON stringified vector for semantic matching
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([profileId, question])
+}
+
+model Attachment {
+  id        String   @id @default(cuid())
+  profileId String
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  question  String
+  fileUrl   String
+  mimeType  String
+  filename  String
+  createdAt DateTime @default(now())
+}
+
+model ApiKey {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label        String
+  provider     String   // openai | anthropic | google | openrouter
+  model        String   // e.g. "gpt-4o", "claude-3-5-sonnet", "gemini-2.5-flash"
+  encryptedKey String   // encrypted secret
+  isActive     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+}
+
+model JobTask {
+  id               String      @id @default(cuid())
+  userId           String
+  user             User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  url              String
+  title            String?
+  organization     String?
+  status           String      @default("APPLYING") // APPLYING | WAITING | APPLIED | FAILED
+  queuePosition    Int         @default(0)
+  detectedLang     String?
+  missingQuestions String?     // JSON stringified array of { id, questionEn, inputType, currentVal }
+  submittedData    String?     // JSON stringified array of submitted fields { questionEn, value, type }
+  retryCount       Int         @default(0)
+  failureReason    String?
+  captchaDetected  Boolean     @default(false)
+  appliedAt        DateTime?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+}
+
+model QueueState {
+  id        String   @id @default("global")
+  isRunning Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+}
