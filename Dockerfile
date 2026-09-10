@@ -30,15 +30,14 @@ WORKDIR /app
 COPY package*.json ./
 COPY prisma ./prisma/
 
-# Set default environment variables for build & runtime
+# Set default environment variables for build
 ENV DATABASE_URL="file:/app/dev.db"
 ENV APP_SECRET="jobbrain_secure_master_key_32_bytes_long_123456"
 ENV NEXTAUTH_SECRET="jobbrain_jwt_secret_token_change_in_prod_abcdef"
 ENV PORT=3000
-ENV NODE_ENV=production
 
-# Install dependencies and Playwright Chromium
-RUN npm install
+# Install all dependencies (including devDependencies like tailwindcss) and Playwright Chromium
+RUN npm install --include=dev
 RUN npx playwright install chromium
 RUN npx prisma generate
 
@@ -48,6 +47,7 @@ COPY . .
 # Build Next.js application
 RUN npm run build
 
+ENV NODE_ENV=production
 EXPOSE 3000
 
 # On container start, ensure database schema is in sync then start app
