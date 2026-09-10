@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: jobbrain
+    runtime: docker
+    plan: free
+    region: frankfurt
+    branch: main
+    envVars:
+      - key: DATABASE_URL
+        value: file:./dev.db
+      - key: APP_SECRET
+        generateValue: true
+      - key: NEXTAUTH_SECRET
+        generateValue: true
+      - key: NODE_ENV
+        value: production

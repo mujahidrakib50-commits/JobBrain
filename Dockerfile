@@ -1,11 +1,8 @@
-FROM node:20-slim AS base
+FROM node:20-bookworm-slim
 
-# Install system dependencies needed for Playwright Chromium
+# Install OpenSSL for Prisma and required shared libraries for Playwright Chromium
 RUN apt-get update && apt-get install -y \
-    wget \
-    gnupg \
-    ca-certificates \
-    procps \
+    openssl \
     libnss3 \
     libnspr4 \
     libatk1.0-0 \
@@ -21,25 +18,34 @@ RUN apt-get update && apt-get install -y \
     libpango-1.0-0 \
     libcairo2 \
     libasound2 \
-    openssl \
+    ca-certificates \
+    fonts-liberation \
+    wget \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
+# Copy dependency manifests
 COPY package*.json ./
 COPY prisma ./prisma/
 
-RUN npm ci
+# Install dependencies and Playwright Chromium
+RUN npm install
+RUN npx playwright install chromium
+RUN npx prisma generate
 
+# Copy project source code
 COPY . .
 
-RUN npx prisma generate
-RUN npm run build
-RUN npx playwright install chromium
+# Push SQLite database schema
+RUN npx prisma db push
 
-EXPOSE 3000
+# Build Next.js application
+RUN npm run build
 
 ENV PORT=3000
 ENV NODE_ENV=production
+EXPOSE 3000
 
 CMD ["npm", "start"]
