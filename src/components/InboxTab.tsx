@@ -20,6 +20,8 @@ import {
   User,
   Settings,
   ShieldCheck,
+  KeyRound,
+  Zap,
 } from "lucide-react";
 
 export interface JobEmail {
@@ -73,6 +75,15 @@ export function InboxTab({ onRefreshBadge }: InboxTabProps) {
 
   // Setup modal / state
   const [showConfigModal, setShowConfigModal] = useState(false);
+  const [connectMethod, setConnectMethod] = useState<"app_password" | "oauth">("app_password");
+
+  // App Password Form state
+  const [appEmail, setAppEmail] = useState("");
+  const [appPassword, setAppPassword] = useState("");
+  const [isConnectingAppPass, setIsConnectingAppPass] = useState(false);
+  const [appPassError, setAppPassError] = useState<string | null>(null);
+
+  // OAuth Form state
   const [clientIdInput, setClientIdInput] = useState("");
   const [clientSecretInput, setClientSecretInput] = useState("");
   const [isSavingConfig, setIsSavingConfig] = useState(false);
@@ -113,13 +124,48 @@ export function InboxTab({ onRefreshBadge }: InboxTabProps) {
     return () => clearInterval(interval);
   }, [fetchInboxData]);
 
-  // Connect Gmail
+  // Connect via App Password (Instant & Reliable)
+  const handleConnectAppPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!appEmail.trim() || !appPassword.trim()) return;
+
+    setIsConnectingAppPass(true);
+    setAppPassError(null);
+
+    try {
+      const res = await fetch("/api/gmail/app-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: appEmail.trim(),
+          appPassword: appPassword.trim(),
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to authenticate with Gmail.");
+      }
+
+      setShowConfigModal(false);
+      setAppPassword("");
+      await fetchInboxData();
+      onRefreshBadge?.();
+    } catch (err: any) {
+      setAppPassError(err.message || "Connection failed. Please check your App Password.");
+    } finally {
+      setIsConnectingAppPass(false);
+    }
+  };
+
+  // Connect Gmail via OAuth
   const handleConnectGmail = async () => {
     try {
       const res = await fetch("/api/gmail/connect");
       const data = await res.json();
       if (!res.ok) {
         if (data.needsConfig) {
+          setConnectMethod("oauth");
           setShowConfigModal(true);
         } else {
           alert(data.error || "Failed to start Google sign-in.");
@@ -340,7 +386,7 @@ export function InboxTab({ onRefreshBadge }: InboxTabProps) {
             </>
           ) : (
             <button
-              onClick={handleConnectGmail}
+              onClick={() => setShowConfigModal(true)}
               className="flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 font-semibold text-xs sm:text-sm text-white shadow-lg shadow-purple-600/20 transition"
             >
               <Mail className="w-4 h-4" />
@@ -389,7 +435,7 @@ export function InboxTab({ onRefreshBadge }: InboxTabProps) {
             </div>
 
             <button
-              onClick={handleConnectGmail}
+              onClick={() => setShowConfigModal(true)}
               className="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 font-semibold text-sm text-white shadow-lg shadow-purple-600/25 transition"
             >
               Connect Gmail Account
@@ -627,14 +673,14 @@ export function InboxTab({ onRefreshBadge }: InboxTabProps) {
         </>
       )}
 
-      {/* Google OAuth Credentials Configuration Modal */}
+      {/* Connect Gmail Modal with Dual Method */}
       {showConfigModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="w-full max-w-lg rounded-2xl bg-surface border border-surface-border shadow-2xl p-6 relative">
             <div className="flex items-center justify-between pb-4 border-b border-surface-border mb-4">
               <div className="flex items-center gap-2 text-white font-bold text-base">
-                <Settings className="w-5 h-5 text-purple-400" />
-                <span>Configure Google OAuth Credentials</span>
+                <Mail className="w-5 h-5 text-purple-400" />
+                <span>Connect Gmail to JobBrain</span>
               </div>
               <button
                 onClick={() => setShowConfigModal(false)}
@@ -644,84 +690,202 @@ export function InboxTab({ onRefreshBadge }: InboxTabProps) {
               </button>
             </div>
 
-            <p className="text-xs text-gray-300 leading-relaxed mb-4">
-              To connect your Gmail, JobBrain needs your free Google OAuth App credentials. You can get them from the{" "}
-              <a
-                href="https://console.cloud.google.com/apis/credentials"
-                target="_blank"
-                rel="noreferrer"
-                className="text-purple-400 underline inline-flex items-center gap-0.5"
+            {/* Method Tabs */}
+            <div className="flex border-b border-surface-border mb-4">
+              <button
+                type="button"
+                onClick={() => setConnectMethod("app_password")}
+                className={`flex items-center gap-1.5 px-3 py-2 border-b-2 text-xs font-semibold transition ${
+                  connectMethod === "app_password"
+                    ? "border-purple-500 text-purple-400"
+                    : "border-transparent text-gray-400 hover:text-gray-200"
+                }`}
               >
-                Google Cloud Console <ExternalLink className="w-3 h-3" />
-              </a>
-              :
-            </p>
+                <Zap className="w-3.5 h-3.5" />
+                <span>App Password (Easiest — 30s)</span>
+              </button>
 
-            <ol className="text-[11px] text-gray-400 space-y-1.5 mb-5 list-decimal pl-4 bg-surface-2 p-3 rounded-xl border border-surface-border">
-              <li>Create a Project & enable the <strong>Gmail API</strong>.</li>
-              <li>Configure OAuth Consent Screen with <code>gmail.readonly</code> scope.</li>
-              <li>Create <strong>OAuth Client ID</strong> (Web application).</li>
-              <li>
-                Add Authorized redirect URI:{" "}
-                <code className="bg-background px-1.5 py-0.5 rounded text-purple-300 font-mono">
-                  http://localhost:3000/api/gmail/callback
-                </code>
-              </li>
-            </ol>
+              <button
+                type="button"
+                onClick={() => setConnectMethod("oauth")}
+                className={`flex items-center gap-1.5 px-3 py-2 border-b-2 text-xs font-semibold transition ${
+                  connectMethod === "oauth"
+                    ? "border-purple-500 text-purple-400"
+                    : "border-transparent text-gray-400 hover:text-gray-200"
+                }`}
+              >
+                <Lock className="w-3.5 h-3.5" />
+                <span>Google OAuth</span>
+              </button>
+            </div>
 
-            {configError && (
-              <div className="mb-4 p-2.5 rounded-lg bg-red-950/40 border border-red-800/60 text-xs text-red-300 flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 shrink-0 text-red-400" />
-                <span>{configError}</span>
+            {/* METHOD 1: App Password (Easiest, zero Google Cloud setup) */}
+            {connectMethod === "app_password" && (
+              <div className="space-y-4">
+                <div className="p-3 rounded-xl bg-purple-950/20 border border-purple-800/30 text-xs text-purple-300 leading-relaxed">
+                  <div className="font-semibold text-white mb-1 flex items-center gap-1.5">
+                    <KeyRound className="w-3.5 h-3.5 text-purple-400" />
+                    <span>How to get your 16-character App Password:</span>
+                  </div>
+                  <ol className="list-decimal pl-4 space-y-1 text-gray-300 text-[11px]">
+                    <li>
+                      Open Google's{" "}
+                      <a
+                        href="https://myaccount.google.com/apppasswords"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-purple-400 underline font-medium inline-flex items-center gap-0.5"
+                      >
+                        App Passwords Page <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </li>
+                    <li>Type <strong>JobBrain</strong> as the App Name and click <strong>Create</strong>.</li>
+                    <li>Copy the <strong>16-letter password</strong> Google shows you and paste it below.</li>
+                  </ol>
+                </div>
+
+                {appPassError && (
+                  <div className="p-2.5 rounded-lg bg-red-950/40 border border-red-800/60 text-xs text-red-300 flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 shrink-0 text-red-400" />
+                    <span>{appPassError}</span>
+                  </div>
+                )}
+
+                <form onSubmit={handleConnectAppPassword} className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-300 mb-1">
+                      Your Gmail Address
+                    </label>
+                    <input
+                      type="email"
+                      value={appEmail}
+                      onChange={(e) => setAppEmail(e.target.value)}
+                      placeholder="yourname@gmail.com"
+                      className="w-full px-3.5 py-2 rounded-xl bg-surface-2 border border-surface-border text-gray-200 text-xs focus:outline-none focus:border-purple-500 font-mono"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-300 mb-1">
+                      16-Character App Password
+                    </label>
+                    <input
+                      type="password"
+                      value={appPassword}
+                      onChange={(e) => setAppPassword(e.target.value)}
+                      placeholder="xxxx xxxx xxxx xxxx"
+                      className="w-full px-3.5 py-2 rounded-xl bg-surface-2 border border-surface-border text-gray-200 text-xs focus:outline-none focus:border-purple-500 font-mono tracking-wider"
+                      required
+                    />
+                    <p className="text-[10px] text-gray-500 mt-1">
+                      Spaces don't matter — JobBrain encrypts and stores your password securely with AES-256.
+                    </p>
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowConfigModal(false)}
+                      className="px-4 py-2 rounded-xl bg-surface-2 text-gray-300 hover:text-white text-xs font-medium transition"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isConnectingAppPass}
+                      className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-lg shadow-purple-600/20 transition disabled:opacity-50 flex items-center gap-1.5"
+                    >
+                      {isConnectingAppPass ? (
+                        <>
+                          <RefreshCw className="w-3 h-3 animate-spin" />
+                          <span>Connecting...</span>
+                        </>
+                      ) : (
+                        <span>Connect Gmail Instantly</span>
+                      )}
+                    </button>
+                  </div>
+                </form>
               </div>
             )}
 
-            <form onSubmit={handleSaveConfig} className="space-y-3">
-              <div>
-                <label className="block text-xs font-medium text-gray-300 mb-1">
-                  Google Client ID
-                </label>
-                <input
-                  type="text"
-                  value={clientIdInput}
-                  onChange={(e) => setClientIdInput(e.target.value)}
-                  placeholder="e.g. 123456789-abcdef.apps.googleusercontent.com"
-                  className="w-full px-3.5 py-2 rounded-xl bg-surface-2 border border-surface-border text-gray-200 text-xs focus:outline-none focus:border-purple-500 font-mono"
-                  required
-                />
-              </div>
+            {/* METHOD 2: OAuth */}
+            {connectMethod === "oauth" && (
+              <div className="space-y-4">
+                <div className="p-3 rounded-xl bg-surface-2 border border-surface-border text-xs text-gray-300 leading-relaxed">
+                  <p className="mb-2">
+                    To fix <code>Error 403: access_denied</code> in Google Cloud Console:
+                  </p>
+                  <p className="text-[11px] text-gray-400">
+                    Open{" "}
+                    <a
+                      href="https://console.cloud.google.com/auth/audience"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-purple-400 underline font-medium inline-flex items-center gap-0.5"
+                    >
+                      Google Cloud Audience & Test Users <ExternalLink className="w-3 h-3" />
+                    </a>{" "}
+                    and either click <strong>"PUBLISH APP"</strong> at the top, or add your email to <strong>"Test users"</strong>.
+                  </p>
+                </div>
 
-              <div>
-                <label className="block text-xs font-medium text-gray-300 mb-1">
-                  Google Client Secret
-                </label>
-                <input
-                  type="password"
-                  value={clientSecretInput}
-                  onChange={(e) => setClientSecretInput(e.target.value)}
-                  placeholder="GOCSPX-..."
-                  className="w-full px-3.5 py-2 rounded-xl bg-surface-2 border border-surface-border text-gray-200 text-xs focus:outline-none focus:border-purple-500 font-mono"
-                  required
-                />
-              </div>
+                {configError && (
+                  <div className="p-2.5 rounded-lg bg-red-950/40 border border-red-800/60 text-xs text-red-300 flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 shrink-0 text-red-400" />
+                    <span>{configError}</span>
+                  </div>
+                )}
 
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowConfigModal(false)}
-                  className="px-4 py-2 rounded-xl bg-surface-2 text-gray-300 hover:text-white text-xs font-medium transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSavingConfig}
-                  className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-lg shadow-purple-600/20 transition disabled:opacity-50"
-                >
-                  {isSavingConfig ? "Saving & Connecting..." : "Save & Connect Gmail"}
-                </button>
+                <form onSubmit={handleSaveConfig} className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-300 mb-1">
+                      Google Client ID
+                    </label>
+                    <input
+                      type="text"
+                      value={clientIdInput}
+                      onChange={(e) => setClientIdInput(e.target.value)}
+                      placeholder="e.g. 64084485700-...apps.googleusercontent.com"
+                      className="w-full px-3.5 py-2 rounded-xl bg-surface-2 border border-surface-border text-gray-200 text-xs focus:outline-none focus:border-purple-500 font-mono"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-300 mb-1">
+                      Google Client Secret
+                    </label>
+                    <input
+                      type="password"
+                      value={clientSecretInput}
+                      onChange={(e) => setClientSecretInput(e.target.value)}
+                      placeholder="GOCSPX-..."
+                      className="w-full px-3.5 py-2 rounded-xl bg-surface-2 border border-surface-border text-gray-200 text-xs focus:outline-none focus:border-purple-500 font-mono"
+                      required
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowConfigModal(false)}
+                      className="px-4 py-2 rounded-xl bg-surface-2 text-gray-300 hover:text-white text-xs font-medium transition"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSavingConfig}
+                      className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-lg shadow-purple-600/20 transition disabled:opacity-50"
+                    >
+                      {isSavingConfig ? "Saving..." : "Save & Connect via OAuth"}
+                    </button>
+                  </div>
+                </form>
               </div>
-            </form>
+            )}
           </div>
         </div>
       )}

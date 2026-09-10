@@ -1,5 +1,6 @@
 import { prisma } from "./prisma";
 import { getValidAccessToken, fetchRecentJobEmails } from "./gmail";
+import { fetchEmailsViaImap } from "./imap";
 import { classifyJobEmail } from "./emailClassifier";
 import { getActiveBrain } from "./ai";
 
@@ -7,13 +8,31 @@ let isPollerRunning = false;
 let pollerInterval: NodeJS.Timeout | null = null;
 
 export async function syncUserGmail(userId: string) {
-  const accessToken = await getValidAccessToken(userId);
-  if (!accessToken) {
-    return { success: false, error: "Gmail account not connected or token invalid." };
+  const account = await prisma.gmailAccount.findUnique({ where: { userId } });
+  if (!account) {
+    return { success: false, error: "Gmail account not connected." };
+  }
+
+  let rawEmails = [];
+  try {
+    if (account.authType === "APP_PASSWORD") {
+      if (!account.accessTokenEnc) {
+        return { success: false, error: "Missing App Password for account." };
+      }
+      rawEmails = await fetchEmailsViaImap(account.email, account.accessTokenEnc);
+    } else {
+      const accessToken = await getValidAccessToken(userId);
+      if (!accessToken) {
+        return { success: false, error: "Gmail OAuth token invalid or expired." };
+      }
+      rawEmails = await fetchRecentJobEmails(accessToken);
+    }
+  } catch (err: any) {
+    console.error("Gmail fetch error during sync:", err);
+    return { success: false, error: err.message || "Failed to fetch emails from Gmail." };
   }
 
   const activeBrain = await getActiveBrain(userId);
-  const rawEmails = await fetchRecentJobEmails(accessToken);
 
   let newCount = 0;
   const categoryCounts = {

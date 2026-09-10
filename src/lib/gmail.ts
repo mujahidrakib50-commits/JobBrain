@@ -147,7 +147,7 @@ export async function saveGmailAccountTokens(
 
 export async function getValidAccessToken(userId: string): Promise<string | null> {
   const account = await prisma.gmailAccount.findUnique({ where: { userId } });
-  if (!account) return null;
+  if (!account || !account.accessTokenEnc) return null;
 
   let accessToken = decrypt(account.accessTokenEnc);
   const now = new Date();

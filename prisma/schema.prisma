@@ -95,7 +95,8 @@ model GmailAccount {
   userId          String    @unique
   user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   email           String
-  accessTokenEnc  String
+  authType        String    @default("OAUTH") // OAUTH | APP_PASSWORD
+  accessTokenEnc  String?
   refreshTokenEnc String?
   expiresAt       DateTime?
   lastSyncAt      DateTime?

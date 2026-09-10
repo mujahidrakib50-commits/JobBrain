@@ -15,7 +15,9 @@
     "bcryptjs": "^2.4.3",
     "clsx": "^2.1.1",
     "framer-motion": "^12.4.7",
+    "imapflow": "^2.0.2",
     "lucide-react": "^0.475.0",
+    "mailparser": "^3.9.24",
     "next": "^15.1.7",
     "playwright": "^1.50.1",
     "react": "^19.0.0",
@@ -24,6 +26,7 @@
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
+    "@types/mailparser": "^3.4.6",
     "@types/node": "^22.13.4",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
