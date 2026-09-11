@@ -14,13 +14,43 @@ export function middleware(request: NextRequest) {
     pathname.startsWith("/api/gmail/callback") ||
     pathname.startsWith("/api/uploads/");
 
-  // 1. If user is logged in and trying to access /auth, redirect to dashboard
-  if (isAuthPage && token) {
+  // Check if token is structurally valid & not expired
+  let isValidSession = false;
+  if (token) {
+    try {
+      const parts = token.split(".");
+      if (parts.length === 3) {
+        const payload = JSON.parse(
+          Buffer.from(parts[1], "base64url").toString("utf8")
+        );
+        if (payload?.userId && payload?.exp && Date.now() < payload.exp) {
+          isValidSession = true;
+        }
+      }
+    } catch {
+      isValidSession = false;
+    }
+  }
+
+  // If token is invalid or expired, clear it to prevent bouncing
+  if (token && !isValidSession) {
+    const response = isAuthPage
+      ? NextResponse.next()
+      : isApiRoute && !isPublicApi
+      ? NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      : NextResponse.redirect(new URL("/auth", request.url));
+
+    response.cookies.delete("jobbrain_session");
+    return response;
+  }
+
+  // 1. If user is logged in with valid session and trying to access /auth, redirect to dashboard
+  if (isAuthPage && isValidSession) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
   // 2. If user is not logged in:
-  if (!token) {
+  if (!isValidSession) {
     // For protected API endpoints, return 401 Unauthorized immediately
     if (isApiRoute && !isPublicApi) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

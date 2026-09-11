@@ -6,7 +6,9 @@ export async function GET() {
   try {
     const user = await requireAuthUser();
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      const response = NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      response.cookies.delete("jobbrain_session");
+      return response;
     }
 
     const activeKey = await prisma.apiKey.findFirst({

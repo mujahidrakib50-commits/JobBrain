@@ -103,9 +103,8 @@ export function InboxTab({ onRefreshBadge }: InboxTabProps) {
     hasConfig: false,
   });
 
-  // Auto-sync speed & countdown timer
+  // Auto-sync speed selection
   const [autoSyncSpeed, setAutoSyncSpeed] = useState<AutoSyncSpeed>("recommended");
-  const [secondsRemaining, setSecondsRemaining] = useState<number>(300);
   const [showSyncMenu, setShowSyncMenu] = useState(false);
 
   // Email multi-selection state
@@ -153,7 +152,16 @@ export function InboxTab({ onRefreshBadge }: InboxTabProps) {
       const eRes = await fetch(`/api/inbox?${params.toString()}`);
       if (eRes.ok) {
         const eData = await eRes.json();
-        setEmails(eData.emails || []);
+        const incoming = eData.emails || [];
+        setEmails((prev) => {
+          if (
+            prev.length === incoming.length &&
+            prev.every((p, i) => p.id === incoming[i]?.id && p.isRead === incoming[i]?.isRead)
+          ) {
+            return prev;
+          }
+          return incoming;
+        });
         if (eData.counts) setCounts(eData.counts);
       }
     } catch (err) {
@@ -177,12 +185,9 @@ export function InboxTab({ onRefreshBadge }: InboxTabProps) {
         console.error("Sync failed:", e);
       } finally {
         if (!options?.silent) setIsSyncing(false);
-        if (autoSyncSpeed !== "off") {
-          setSecondsRemaining(SPEED_CONFIG[autoSyncSpeed].intervalSec);
-        }
       }
     },
-    [fetchInboxData, onRefreshBadge, autoSyncSpeed]
+    [fetchInboxData, onRefreshBadge]
   );
 
   // Load saved auto-sync interval from localStorage
@@ -191,31 +196,26 @@ export function InboxTab({ onRefreshBadge }: InboxTabProps) {
       const saved = localStorage.getItem("jobbrain_mail_autosync") as AutoSyncSpeed | null;
       if (saved && SPEED_CONFIG[saved]) {
         setAutoSyncSpeed(saved);
-        setSecondsRemaining(SPEED_CONFIG[saved].intervalSec);
       }
     }
   }, []);
 
-  // Poll inbox data from database
+  // Poll inbox data from database smoothly
   useEffect(() => {
     fetchInboxData();
-    const interval = setInterval(fetchInboxData, 15000);
+    const interval = setInterval(fetchInboxData, 8000);
     return () => clearInterval(interval);
   }, [fetchInboxData]);
 
-  // Auto-sync countdown timer
+  // Background Auto-Sync: Automatically scans Gmail in the background without page reload
   useEffect(() => {
     if (autoSyncSpeed === "off" || !gmailStatus.isConnected) return;
+    const intervalSec = SPEED_CONFIG[autoSyncSpeed].intervalSec;
+    if (!intervalSec || intervalSec <= 0) return;
 
     const timer = setInterval(() => {
-      setSecondsRemaining((prev) => {
-        if (prev <= 1) {
-          handleSyncNow({ silent: true });
-          return SPEED_CONFIG[autoSyncSpeed].intervalSec;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+      handleSyncNow({ silent: true });
+    }, intervalSec * 1000);
 
     return () => clearInterval(timer);
   }, [autoSyncSpeed, gmailStatus.isConnected, handleSyncNow]);
@@ -236,17 +236,10 @@ export function InboxTab({ onRefreshBadge }: InboxTabProps) {
 
   const handleSpeedChange = (speed: AutoSyncSpeed) => {
     setAutoSyncSpeed(speed);
-    setSecondsRemaining(SPEED_CONFIG[speed].intervalSec);
     setShowSyncMenu(false);
     if (typeof window !== "undefined") {
       localStorage.setItem("jobbrain_mail_autosync", speed);
     }
-  };
-
-  const formatCountdown = (totalSec: number) => {
-    const m = Math.floor(totalSec / 60);
-    const s = totalSec % 60;
-    return `${m}:${s < 10 ? "0" : ""}${s}`;
   };
 
   // Gmail Deep Linking: Open exact email thread in Gmail Web
@@ -579,10 +572,10 @@ export function InboxTab({ onRefreshBadge }: InboxTabProps) {
                   <Clock className="w-3.5 h-3.5 text-purple-400" />
                   <span className="hidden xs:inline text-gray-400">Auto:</span>
                   <span className="font-semibold text-white">{SPEED_CONFIG[autoSyncSpeed].badge}</span>
-                  {autoSyncSpeed !== "off" && (
-                    <span className="text-[10px] text-purple-300 font-mono">
-                      ({formatCountdown(secondsRemaining)})
-                    </span>
+                  {autoSyncSpeed !== "off" ? (
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" title="Background auto-sync active" />
+                  ) : (
+                    <span className="w-2 h-2 rounded-full bg-gray-500 shrink-0" title="Auto-sync paused" />
                   )}
                   <ChevronDown className="w-3 h-3 text-gray-400" />
                 </button>

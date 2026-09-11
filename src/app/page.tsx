@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Header } from "@/components/Header";
 import { LinkInputHero } from "@/components/LinkInputHero";
 import { TabsHeader, TabType } from "@/components/TabsHeader";
@@ -22,6 +22,7 @@ export default function DashboardPage() {
 
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [brainModalOpen, setBrainModalOpen] = useState(false);
+  const isRedirectingRef = useRef(false);
 
   // Check URL query parameters for active tab (e.g. ?tab=inbox after OAuth redirect)
   useEffect(() => {
@@ -39,7 +40,11 @@ export default function DashboardPage() {
       // Fetch active brain and user profile first to verify authentication
       const meRes = await fetch("/api/auth/me");
       if (meRes.status === 401) {
-        window.location.href = "/auth";
+        if (!isRedirectingRef.current) {
+          isRedirectingRef.current = true;
+          document.cookie = "jobbrain_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+          window.location.replace("/auth");
+        }
         return;
       }
       if (meRes.ok) {
@@ -77,7 +82,7 @@ export default function DashboardPage() {
   useEffect(() => {
     fetchStatus();
     // Auto-refresh periodically to reflect background automation
-    const interval = setInterval(fetchStatus, 3000);
+    const interval = setInterval(fetchStatus, 6000);
     return () => clearInterval(interval);
   }, [fetchStatus]);
 
