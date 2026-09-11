@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
-import { getSessionUser, getOrCreateDefaultUser } from "@/lib/auth";
+import { requireAuthUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export async function POST() {
   try {
-    let user = await getSessionUser();
-    if (!user) user = await getOrCreateDefaultUser();
+    const user = await requireAuthUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     await prisma.gmailAccount.deleteMany({
       where: { userId: user.id },

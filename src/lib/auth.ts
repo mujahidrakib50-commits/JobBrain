@@ -63,30 +63,10 @@ export async function getSessionUser() {
   return user;
 }
 
-export async function getOrCreateDefaultUser() {
-  // For easy single-user onboarding or self-hosting
-  let user = await prisma.user.findFirst({
-    include: { profile: true },
-  });
-
-  if (!user) {
-    const defaultEmail = "admin@jobbrain.local";
-    const passwordHash = await hashPassword("admin123");
-    user = await prisma.user.create({
-      data: {
-        email: defaultEmail,
-        passwordHash,
-        profile: {
-          create: {
-            avatarUrl: null,
-          },
-        },
-      },
-      include: { profile: true },
-    });
-  }
-
+export async function requireAuthUser() {
+  const user = await getSessionUser();
   return user;
 }
 
 export const AUTH_COOKIE_NAME = TOKEN_COOKIE;
+

@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
-import { getSessionUser, getOrCreateDefaultUser } from "@/lib/auth";
+import { requireAuthUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import fs from "fs";
 import path from "path";
 
 export async function POST(req: Request) {
   try {
-    let user = await getSessionUser();
-    if (!user) user = await getOrCreateDefaultUser();
+    const user = await requireAuthUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const formData = await req.formData();
     const file = formData.get("avatar") as File | null;

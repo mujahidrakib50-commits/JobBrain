@@ -17,6 +17,7 @@ export default function DashboardPage() {
   const [isQueueRunning, setIsQueueRunning] = useState(false);
   const [activeBrain, setActiveBrain] = useState<any>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [unreadEmailsCount, setUnreadEmailsCount] = useState<number>(0);
 
   const [profileModalOpen, setProfileModalOpen] = useState(false);
@@ -35,19 +36,24 @@ export default function DashboardPage() {
 
   const fetchStatus = useCallback(async () => {
     try {
+      // Fetch active brain and user profile first to verify authentication
+      const meRes = await fetch("/api/auth/me");
+      if (meRes.status === 401) {
+        window.location.href = "/auth";
+        return;
+      }
+      if (meRes.ok) {
+        const meData = await meRes.json();
+        setUserEmail(meData.user?.email || null);
+        setActiveBrain(meData.activeBrain || null);
+        setAvatarUrl(meData.user?.avatarUrl || null);
+      }
+
       // Fetch queue running status
       const qRes = await fetch("/api/queue/status");
       if (qRes.ok) {
         const qData = await qRes.json();
         setIsQueueRunning(qData.isRunning);
-      }
-
-      // Fetch active brain and user profile
-      const meRes = await fetch("/api/auth/me");
-      if (meRes.ok) {
-        const meData = await meRes.json();
-        setActiveBrain(meData.activeBrain || null);
-        setAvatarUrl(meData.user?.avatarUrl || null);
       }
 
       // Fetch tasks
@@ -166,6 +172,7 @@ export default function DashboardPage() {
         onToggleQueue={handleToggleQueue}
         activeBrain={activeBrain}
         avatarUrl={avatarUrl}
+        userEmail={userEmail}
       />
 
       {/* Main Container */}

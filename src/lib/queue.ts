@@ -4,46 +4,53 @@ import { scrapeJobDetails, processJobApplication } from "./browser";
 import { findBestProfileMatch } from "./embeddings";
 import { getAccurateNetworkTime } from "./time";
 
-let isWorkerLoopActive = false;
+const activeUserLoops = new Set<string>();
 
-export async function isQueueRunning(): Promise<boolean> {
+export async function isQueueRunning(userId?: string): Promise<boolean> {
+  if (!userId) {
+    const anyRunning = await prisma.queueState.findFirst({
+      where: { isRunning: true },
+    });
+    return !!anyRunning;
+  }
   const state = await prisma.queueState.findUnique({
-    where: { id: "global" },
+    where: { id: userId },
   });
   return state ? state.isRunning : false;
 }
 
-export async function setQueueRunning(running: boolean) {
+export async function setQueueRunning(userId: string, running: boolean) {
   await prisma.queueState.upsert({
-    where: { id: "global" },
+    where: { id: userId },
     update: { isRunning: running },
-    create: { id: "global", isRunning: running },
+    create: { id: userId, isRunning: running },
   });
 
-  if (running && !isWorkerLoopActive) {
-    runQueueWorkerLoop().catch(console.error);
+  if (running && !activeUserLoops.has(userId)) {
+    runQueueWorkerLoop(userId).catch(console.error);
   }
 }
 
 /**
- * Main serial worker loop (1 task at a time)
+ * Main serial worker loop scoped per user (1 task at a time for the user)
  */
-export async function runQueueWorkerLoop() {
-  if (isWorkerLoopActive) return;
-  isWorkerLoopActive = true;
+export async function runQueueWorkerLoop(userId: string) {
+  if (!userId || activeUserLoops.has(userId)) return;
+  activeUserLoops.add(userId);
 
   try {
     while (true) {
-      const running = await isQueueRunning();
+      const running = await isQueueRunning(userId);
       if (!running) {
         break;
       }
 
-      // Find the next task in APPLYING status (lowest queuePosition, oldest createdAt)
+      // Find the next task in APPLYING status for this user
       const nextTask = await prisma.jobTask.findFirst({
-        where: { status: "APPLYING" },
+        where: { userId, status: "APPLYING" },
         orderBy: [{ queuePosition: "asc" }, { createdAt: "asc" }],
       });
+
 
       if (!nextTask) {
         await new Promise((resolve) => setTimeout(resolve, 3000));
@@ -164,7 +171,7 @@ export async function runQueueWorkerLoop() {
   } catch (loopError) {
     console.error("Queue worker loop error:", loopError);
   } finally {
-    isWorkerLoopActive = false;
+    activeUserLoops.delete(userId);
   }
 }
 
@@ -176,10 +183,11 @@ export async function runQueueWorkerLoop() {
  */
 export async function restartWaitingTask(
   taskId: string,
-  submittedAnswers: { question: string; answer: string; selector?: string }[]
+  submittedAnswers: { question: string; answer: string; selector?: string }[],
+  userId?: string
 ) {
-  const task = await prisma.jobTask.findUnique({
-    where: { id: taskId },
+  const task = await prisma.jobTask.findFirst({
+    where: { id: taskId, ...(userId ? { userId } : {}) },
   });
   if (!task) throw new Error("Task not found");
 
@@ -325,9 +333,9 @@ export async function restartWaitingTask(
       },
     });
 
-    const isRunning = await isQueueRunning();
-    if (isRunning && !isWorkerLoopActive) {
-      runQueueWorkerLoop().catch(console.error);
+    const isRunning = await isQueueRunning(task.userId);
+    if (isRunning && !activeUserLoops.has(task.userId)) {
+      runQueueWorkerLoop(task.userId).catch(console.error);
     }
 
     return { resolved: true, remaining: 0, allFields: updatedFieldsList };
@@ -348,9 +356,9 @@ export async function restartWaitingTask(
  * Apply to only one single task immediately without starting the whole queue:
  * Moves task to the bottom of the queue and applies to that particular task.
  */
-export async function applySingleTask(taskId: string) {
-  const task = await prisma.jobTask.findUnique({
-    where: { id: taskId },
+export async function applySingleTask(taskId: string, userId?: string) {
+  const task = await prisma.jobTask.findFirst({
+    where: { id: taskId, ...(userId ? { userId } : {}) },
   });
   if (!task) throw new Error("Task not found");
 

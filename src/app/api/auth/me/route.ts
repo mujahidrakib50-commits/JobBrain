@@ -1,13 +1,12 @@
 import { NextResponse } from "next/server";
-import { getSessionUser, getOrCreateDefaultUser } from "@/lib/auth";
+import { requireAuthUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
-    let user = await getSessionUser();
+    const user = await requireAuthUser();
     if (!user) {
-      // Auto-onboard default single-user account
-      user = await getOrCreateDefaultUser();
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const activeKey = await prisma.apiKey.findFirst({

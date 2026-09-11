@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
-import { getSessionUser, getOrCreateDefaultUser } from "@/lib/auth";
+import { requireAuthUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(req: Request) {
   try {
-    let user = await getSessionUser();
-    if (!user) user = await getOrCreateDefaultUser();
+    const user = await requireAuthUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const url = new URL(req.url);
     const category = url.searchParams.get("category"); // REJECTION | POSITIVE | JOB_MATCH | all
@@ -39,7 +41,7 @@ export async function GET(req: Request) {
       emails.sort((a, b) => a.category.localeCompare(b.category));
     }
 
-    // Counts across all categories
+    // Counts across all categories for this user
     const allUserEmails = await prisma.jobEmail.findMany({
       where: { userId: user.id },
       select: { category: true, isRead: true },
@@ -61,8 +63,10 @@ export async function GET(req: Request) {
 
 export async function PATCH(req: Request) {
   try {
-    let user = await getSessionUser();
-    if (!user) user = await getOrCreateDefaultUser();
+    const user = await requireAuthUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const { id, isRead, markAllRead } = await req.json();
 
@@ -91,8 +95,10 @@ export async function PATCH(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    let user = await getSessionUser();
-    if (!user) user = await getOrCreateDefaultUser();
+    const user = await requireAuthUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const { id } = await req.json();
     if (!id) {

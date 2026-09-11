@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSessionUser, getOrCreateDefaultUser } from "@/lib/auth";
+import { requireAuthUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isQueueRunning, runQueueWorkerLoop } from "@/lib/queue";
 import { scrapeJobDetails } from "@/lib/browser";
@@ -7,8 +7,10 @@ import { getActiveBrain } from "@/lib/ai";
 
 export async function GET() {
   try {
-    let user = await getSessionUser();
-    if (!user) user = await getOrCreateDefaultUser();
+    const user = await requireAuthUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const tasks = await prisma.jobTask.findMany({
       where: { userId: user.id },
@@ -23,8 +25,10 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    let user = await getSessionUser();
-    if (!user) user = await getOrCreateDefaultUser();
+    const user = await requireAuthUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const { rawLinks } = await req.json();
     if (!rawLinks || typeof rawLinks !== "string") {
@@ -115,10 +119,10 @@ export async function POST(req: Request) {
       }
     })().catch(console.error);
 
-    // Trigger queue if running
-    const isRunning = await isQueueRunning();
+    // Trigger user queue if running
+    const isRunning = await isQueueRunning(user.id);
     if (isRunning) {
-      runQueueWorkerLoop().catch(console.error);
+      runQueueWorkerLoop(user.id).catch(console.error);
     }
 
     return NextResponse.json({ success: true, count: createdTasks.length, tasks: createdTasks });
@@ -129,8 +133,10 @@ export async function POST(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    let user = await getSessionUser();
-    if (!user) user = await getOrCreateDefaultUser();
+    const user = await requireAuthUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const { id } = await req.json();
     if (!id) return NextResponse.json({ error: "Task ID is required" }, { status: 400 });

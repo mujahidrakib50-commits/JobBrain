@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getSessionUser, getOrCreateDefaultUser } from "@/lib/auth";
+import { requireAuthUser } from "@/lib/auth";
 
 export async function POST(req: Request) {
   try {
-    let user = await getSessionUser();
-    if (!user) user = await getOrCreateDefaultUser();
+    const user = await requireAuthUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const { taskIds } = await req.json();
     if (!Array.isArray(taskIds)) {

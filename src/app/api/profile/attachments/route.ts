@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
-import { getSessionUser, getOrCreateDefaultUser } from "@/lib/auth";
+import { requireAuthUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import fs from "fs";
 import path from "path";
 
 export async function GET() {
   try {
-    let user = await getSessionUser();
-    if (!user) user = await getOrCreateDefaultUser();
+    const user = await requireAuthUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const profile = await prisma.profile.findUnique({
       where: { userId: user.id },
@@ -22,8 +24,10 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    let user = await getSessionUser();
-    if (!user) user = await getOrCreateDefaultUser();
+    const user = await requireAuthUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const formData = await req.formData();
     const question = formData.get("question") as string;
@@ -36,8 +40,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "File upload is required" }, { status: 400 });
     }
 
-    const profile = await prisma.profile.findUnique({ where: { userId: user.id } });
-    if (!profile) return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+    const profile = await prisma.profile.upsert({
+      where: { userId: user.id },
+      update: {},
+      create: { userId: user.id },
+    });
 
     const uploadsDir = path.join(process.cwd(), "uploads");
     if (!fs.existsSync(uploadsDir)) {
@@ -50,8 +57,6 @@ export async function POST(req: Request) {
 
     const buffer = Buffer.from(await file.arrayBuffer());
     fs.writeFileSync(filePath, buffer);
-
-    const relativeUrl = `/api/uploads/${safeFilename}`;
 
     const attachment = await prisma.attachment.create({
       data: {
@@ -71,8 +76,10 @@ export async function POST(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    let user = await getSessionUser();
-    if (!user) user = await getOrCreateDefaultUser();
+    const user = await requireAuthUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const { id } = await req.json();
     if (!id) return NextResponse.json({ error: "ID is required" }, { status: 400 });

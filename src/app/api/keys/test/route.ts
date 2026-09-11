@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
+import { requireAuthUser } from "@/lib/auth";
 import { testBrainConnection } from "@/lib/ai";
 
 export async function POST(req: Request) {
   try {
+    const user = await requireAuthUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { provider, model, key } = await req.json();
 
     if (!provider || !key) {

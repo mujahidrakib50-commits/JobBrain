@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
-import { getSessionUser, getOrCreateDefaultUser } from "@/lib/auth";
+import { requireAuthUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { generateLocalEmbedding } from "@/lib/embeddings";
 
 export async function GET() {
   try {
-    let user = await getSessionUser();
-    if (!user) user = await getOrCreateDefaultUser();
+    const user = await requireAuthUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const profile = await prisma.profile.findUnique({
       where: { userId: user.id },
@@ -21,8 +23,10 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    let user = await getSessionUser();
-    if (!user) user = await getOrCreateDefaultUser();
+    const user = await requireAuthUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const { question, answer } = await req.json();
     if (!question || typeof question !== "string" || !question.trim()) {
@@ -32,8 +36,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Answer is required" }, { status: 400 });
     }
 
-    const profile = await prisma.profile.findUnique({ where: { userId: user.id } });
-    if (!profile) return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+    const profile = await prisma.profile.upsert({
+      where: { userId: user.id },
+      update: {},
+      create: { userId: user.id },
+    });
 
     const embedding = JSON.stringify(generateLocalEmbedding(question.trim()));
 
@@ -64,8 +71,10 @@ export async function POST(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    let user = await getSessionUser();
-    if (!user) user = await getOrCreateDefaultUser();
+    const user = await requireAuthUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const { id } = await req.json();
     if (!id) return NextResponse.json({ error: "ID required" }, { status: 400 });

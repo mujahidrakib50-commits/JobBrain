@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
-import { getSessionUser, getOrCreateDefaultUser } from "@/lib/auth";
+import { requireAuthUser } from "@/lib/auth";
 import { getGoogleAuthUrl, getGoogleOAuthConfig } from "@/lib/gmail";
 
 export async function GET() {
   try {
-    let user = await getSessionUser();
-    if (!user) user = await getOrCreateDefaultUser();
+    const user = await requireAuthUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const config = await getGoogleOAuthConfig();
     if (!config) {

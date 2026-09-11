@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSessionUser, getOrCreateDefaultUser } from "@/lib/auth";
+import { requireAuthUser } from "@/lib/auth";
 import { restartWaitingTask } from "@/lib/queue";
 
 export async function POST(
@@ -7,13 +7,15 @@ export async function POST(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    let user = await getSessionUser();
-    if (!user) user = await getOrCreateDefaultUser();
+    const user = await requireAuthUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const { id } = await context.params;
     const { answers } = await req.json();
 
-    const result = await restartWaitingTask(id, answers || []);
+    const result = await restartWaitingTask(id, answers || [], user.id);
 
     return NextResponse.json({
       success: true,

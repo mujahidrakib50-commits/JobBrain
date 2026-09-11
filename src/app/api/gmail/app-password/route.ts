@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
-import { getSessionUser, getOrCreateDefaultUser } from "@/lib/auth";
+import { requireAuthUser } from "@/lib/auth";
 import { testGmailAppPassword, saveGmailAppPasswordAccount } from "@/lib/imap";
 import { syncUserGmail } from "@/lib/gmailPoller";
 
 export async function POST(req: Request) {
   try {
-    let user = await getSessionUser();
-    if (!user) user = await getOrCreateDefaultUser();
+    const user = await requireAuthUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const { email, appPassword } = await req.json();
 
@@ -26,7 +28,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // Save credentials encrypted
+    // Save credentials encrypted for this specific user
     await saveGmailAppPasswordAccount(user.id, email, appPassword);
 
     // Trigger initial background sync

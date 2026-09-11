@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Cpu, Play, Square, Settings, User, Key, CheckCircle, ChevronDown, Mail } from "lucide-react";
+import { Cpu, Play, Square, Settings, User, Key, CheckCircle, ChevronDown, Mail, LogOut } from "lucide-react";
 
 interface HeaderProps {
   onOpenProfile: () => void;
@@ -10,6 +10,7 @@ interface HeaderProps {
   isQueueRunning: boolean;
   onToggleQueue: () => void;
   avatarUrl?: string | null;
+  userEmail?: string | null;
   activeBrain: {
     id: string;
     label: string;
@@ -25,10 +26,18 @@ export function Header({
   isQueueRunning,
   onToggleQueue,
   avatarUrl,
+  userEmail,
   activeBrain,
 }: HeaderProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch {}
+    window.location.href = "/auth";
+  };
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -132,10 +141,22 @@ export function Header({
           </button>
 
           {dropdownOpen && (
-            <div className="absolute right-0 mt-2 w-52 rounded-xl bg-surface border border-surface-border shadow-2xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+            <div className="absolute right-0 mt-2 w-56 rounded-xl bg-surface border border-surface-border shadow-2xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
               <div className="px-3 py-2 border-b border-surface-border">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                  Settings
+                <div className="flex items-center justify-between gap-1 mb-0.5">
+                  <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                    Account
+                  </span>
+                  <span className="inline-flex items-center gap-1 text-[10px] text-accent-emerald font-medium">
+                    <span className="w-1.5 h-1.5 rounded-full bg-accent-emerald animate-pulse" />
+                    Active
+                  </span>
+                </div>
+                <p
+                  className="text-xs font-semibold text-white truncate"
+                  title={userEmail || "Signed In"}
+                >
+                  {userEmail || "Signed In"}
                 </p>
               </div>
 
@@ -188,6 +209,23 @@ export function Header({
                   </div>
                 </button>
               )}
+
+              {/* Sign Out Button */}
+              <button
+                onClick={() => {
+                  setDropdownOpen(false);
+                  handleLogout();
+                }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-accent-red hover:bg-accent-red/10 text-left transition border-t border-surface-border/50"
+              >
+                <div className="w-6 h-6 rounded-md bg-accent-red/10 border border-accent-red/20 flex items-center justify-center text-accent-red">
+                  <LogOut className="w-3.5 h-3.5" />
+                </div>
+                <div>
+                  <div className="font-semibold">Sign Out</div>
+                  <div className="text-[10px] text-gray-400">Log out of JobBrain</div>
+                </div>
+              </button>
             </div>
           )}
         </div>

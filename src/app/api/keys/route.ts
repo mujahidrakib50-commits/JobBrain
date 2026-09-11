@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
-import { getSessionUser, getOrCreateDefaultUser } from "@/lib/auth";
+import { requireAuthUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { encrypt, decrypt, maskKey } from "@/lib/crypto";
 
 export async function GET() {
   try {
-    let user = await getSessionUser();
-    if (!user) user = await getOrCreateDefaultUser();
+    const user = await requireAuthUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const keys = await prisma.apiKey.findMany({
       where: { userId: user.id },
@@ -34,8 +36,10 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    let user = await getSessionUser();
-    if (!user) user = await getOrCreateDefaultUser();
+    const user = await requireAuthUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const { label, provider, model, key } = await req.json();
 
@@ -81,11 +85,21 @@ export async function POST(req: Request) {
 
 export async function PATCH(req: Request) {
   try {
-    let user = await getSessionUser();
-    if (!user) user = await getOrCreateDefaultUser();
+    const user = await requireAuthUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const { id } = await req.json();
     if (!id) return NextResponse.json({ error: "Key ID required" }, { status: 400 });
+
+    // Verify key belongs to this user
+    const key = await prisma.apiKey.findFirst({
+      where: { id, userId: user.id },
+    });
+    if (!key) {
+      return NextResponse.json({ error: "Key not found" }, { status: 404 });
+    }
 
     // Deactivate all keys for this user
     await prisma.apiKey.updateMany({
@@ -95,7 +109,7 @@ export async function PATCH(req: Request) {
 
     // Activate the chosen key
     const updated = await prisma.apiKey.update({
-      where: { id },
+      where: { id: key.id },
       data: { isActive: true },
     });
 
@@ -107,8 +121,10 @@ export async function PATCH(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    let user = await getSessionUser();
-    if (!user) user = await getOrCreateDefaultUser();
+    const user = await requireAuthUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const { id } = await req.json();
     if (!id) return NextResponse.json({ error: "Key ID required" }, { status: 400 });
