@@ -18,24 +18,30 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No avatar file provided" }, { status: 400 });
     }
 
-    const uploadsDir = path.join(process.cwd(), "uploads");
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const mimeType = file.type || "image/jpeg";
+    const base64Data = buffer.toString("base64");
+    const avatarDataUrl = `data:${mimeType};base64,${base64Data}`;
+
+    // Also persist to disk as backup
+    try {
+      const uploadsDir = path.join(process.cwd(), "uploads");
+      if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
+      const ext = path.extname(file.name) || ".png";
+      const filename = `avatar_${user.id}_${Date.now()}${ext}`;
+      const filePath = path.join(uploadsDir, filename);
+      fs.writeFileSync(filePath, buffer);
+    } catch (e) {
+      console.warn("Failed saving avatar to disk fallback:", e);
     }
 
-    const ext = path.extname(file.name) || ".png";
-    const filename = `avatar_${user.id}_${Date.now()}${ext}`;
-    const filePath = path.join(uploadsDir, filename);
-
-    const buffer = Buffer.from(await file.arrayBuffer());
-    fs.writeFileSync(filePath, buffer);
-
-    const avatarUrl = `/api/uploads/${filename}`;
-
+    // Save persistent data URL to profile
     const profile = await prisma.profile.upsert({
       where: { userId: user.id },
-      update: { avatarUrl },
-      create: { userId: user.id, avatarUrl },
+      update: { avatarUrl: avatarDataUrl },
+      create: { userId: user.id, avatarUrl: avatarDataUrl },
     });
 
     return NextResponse.json({ success: true, avatarUrl: profile.avatarUrl });

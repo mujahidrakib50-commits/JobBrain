@@ -22,6 +22,10 @@ import {
   ShieldCheck,
   KeyRound,
   Zap,
+  Clock,
+  CheckSquare,
+  Square,
+  MinusSquare,
 } from "lucide-react";
 
 export interface JobEmail {
@@ -38,6 +42,38 @@ export interface JobEmail {
   isRead: boolean;
   createdAt: string;
 }
+
+export type AutoSyncSpeed = "fast" | "recommended" | "slow" | "off";
+
+export const SPEED_CONFIG: Record<
+  AutoSyncSpeed,
+  { label: string; intervalSec: number; badge: string; description: string }
+> = {
+  fast: {
+    label: "Fast (1 min)",
+    intervalSec: 60,
+    badge: "1m",
+    description: "High frequency: syncs every 1 minute",
+  },
+  recommended: {
+    label: "Recommended (5 mins)",
+    intervalSec: 300,
+    badge: "5m",
+    description: "Balanced: syncs every 5 minutes",
+  },
+  slow: {
+    label: "Slow (15 mins)",
+    intervalSec: 900,
+    badge: "15m",
+    description: "Resource saver: syncs every 15 minutes",
+  },
+  off: {
+    label: "Manual Only (Off)",
+    intervalSec: 0,
+    badge: "Off",
+    description: "Automatic sync disabled; use Sync Now",
+  },
+};
 
 interface InboxTabProps {
   onRefreshBadge?: () => void;
@@ -66,6 +102,15 @@ export function InboxTab({ onRefreshBadge }: InboxTabProps) {
     lastSyncAt: null,
     hasConfig: false,
   });
+
+  // Auto-sync speed & countdown timer
+  const [autoSyncSpeed, setAutoSyncSpeed] = useState<AutoSyncSpeed>("recommended");
+  const [secondsRemaining, setSecondsRemaining] = useState<number>(300);
+  const [showSyncMenu, setShowSyncMenu] = useState(false);
+
+  // Email multi-selection state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isBulkActing, setIsBulkActing] = useState(false);
 
   // Filters and sorting
   const [selectedCategory, setSelectedCategory] = useState<"all" | "REJECTION" | "POSITIVE" | "JOB_MATCH">("all");
@@ -118,11 +163,183 @@ export function InboxTab({ onRefreshBadge }: InboxTabProps) {
     }
   }, [selectedCategory, sortBy, searchQuery]);
 
+  // Manual / Auto Sync Gmail
+  const handleSyncNow = useCallback(
+    async (options?: { silent?: boolean }) => {
+      if (!options?.silent) setIsSyncing(true);
+      try {
+        const res = await fetch("/api/gmail/status", { method: "POST" });
+        if (res.ok) {
+          await fetchInboxData();
+          onRefreshBadge?.();
+        }
+      } catch (e) {
+        console.error("Sync failed:", e);
+      } finally {
+        if (!options?.silent) setIsSyncing(false);
+        if (autoSyncSpeed !== "off") {
+          setSecondsRemaining(SPEED_CONFIG[autoSyncSpeed].intervalSec);
+        }
+      }
+    },
+    [fetchInboxData, onRefreshBadge, autoSyncSpeed]
+  );
+
+  // Load saved auto-sync interval from localStorage
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("jobbrain_mail_autosync") as AutoSyncSpeed | null;
+      if (saved && SPEED_CONFIG[saved]) {
+        setAutoSyncSpeed(saved);
+        setSecondsRemaining(SPEED_CONFIG[saved].intervalSec);
+      }
+    }
+  }, []);
+
+  // Poll inbox data from database
   useEffect(() => {
     fetchInboxData();
     const interval = setInterval(fetchInboxData, 15000);
     return () => clearInterval(interval);
   }, [fetchInboxData]);
+
+  // Auto-sync countdown timer
+  useEffect(() => {
+    if (autoSyncSpeed === "off" || !gmailStatus.isConnected) return;
+
+    const timer = setInterval(() => {
+      setSecondsRemaining((prev) => {
+        if (prev <= 1) {
+          handleSyncNow({ silent: true });
+          return SPEED_CONFIG[autoSyncSpeed].intervalSec;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [autoSyncSpeed, gmailStatus.isConnected, handleSyncNow]);
+
+  // Clean up selectedIds if email list changes
+  useEffect(() => {
+    if (selectedIds.size > 0) {
+      const currentIds = new Set(emails.map((e) => e.id));
+      setSelectedIds((prev) => {
+        const next = new Set<string>();
+        prev.forEach((id) => {
+          if (currentIds.has(id)) next.add(id);
+        });
+        return next;
+      });
+    }
+  }, [emails]);
+
+  const handleSpeedChange = (speed: AutoSyncSpeed) => {
+    setAutoSyncSpeed(speed);
+    setSecondsRemaining(SPEED_CONFIG[speed].intervalSec);
+    setShowSyncMenu(false);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("jobbrain_mail_autosync", speed);
+    }
+  };
+
+  const formatCountdown = (totalSec: number) => {
+    const m = Math.floor(totalSec / 60);
+    const s = totalSec % 60;
+    return `${m}:${s < 10 ? "0" : ""}${s}`;
+  };
+
+  // Gmail Deep Linking: Open exact email thread in Gmail Web
+  const getGmailWebUrl = (email: JobEmail) => {
+    // 1. Thread ID (from Gmail API)
+    if (email.threadId && /^[0-9a-f]{16}$/i.test(email.threadId)) {
+      return `https://mail.google.com/mail/u/0/#all/${email.threadId}`;
+    }
+    // 2. RFC 822 messageId
+    if (email.messageId) {
+      const clean = email.messageId.replace(/^<|>$/g, "").trim();
+      if (clean) {
+        return `https://mail.google.com/mail/u/0/#search/rfc822msgid%3A${encodeURIComponent(clean)}`;
+      }
+    }
+    // 3. Fallback search by sender + subject
+    const query = `from:(${email.senderEmail}) "${email.subject.replace(/"/g, "")}"`;
+    return `https://mail.google.com/mail/u/0/#search/${encodeURIComponent(query)}`;
+  };
+
+  // Selection helpers
+  const isAllSelected = emails.length > 0 && selectedIds.size === emails.length;
+  const isPartiallySelected = selectedIds.size > 0 && selectedIds.size < emails.length;
+
+  const handleToggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(emails.map((e) => e.id)));
+    }
+  };
+
+  const handleToggleSelectOne = (id: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const handleBulkMarkRead = async (isRead: boolean) => {
+    if (selectedIds.size === 0) return;
+    setIsBulkActing(true);
+    const ids = Array.from(selectedIds);
+    try {
+      const res = await fetch("/api/inbox", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids, isRead }),
+      });
+      if (res.ok) {
+        setEmails((prev) =>
+          prev.map((e) => (selectedIds.has(e.id) ? { ...e, isRead } : e))
+        );
+        setSelectedIds(new Set());
+        onRefreshBadge?.();
+      }
+    } catch (e) {
+      console.error("Bulk mark read failed:", e);
+    } finally {
+      setIsBulkActing(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`Are you sure you want to delete ${selectedIds.size} selected email(s) from JobBrain?`)) {
+      return;
+    }
+    setIsBulkActing(true);
+    const ids = Array.from(selectedIds);
+    try {
+      const res = await fetch("/api/inbox", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids }),
+      });
+      if (res.ok) {
+        setEmails((prev) => prev.filter((e) => !selectedIds.has(e.id)));
+        setSelectedIds(new Set());
+        onRefreshBadge?.();
+      }
+    } catch (e) {
+      console.error("Bulk delete failed:", e);
+    } finally {
+      setIsBulkActing(false);
+    }
+  };
 
   // Connect via App Password (Instant & Reliable)
   const handleConnectAppPassword = async (e: React.FormEvent) => {
@@ -210,22 +427,6 @@ export function InboxTab({ onRefreshBadge }: InboxTabProps) {
       setConfigError(err.message || "Failed to save credentials.");
     } finally {
       setIsSavingConfig(false);
-    }
-  };
-
-  // Manual Sync
-  const handleSyncNow = async () => {
-    setIsSyncing(true);
-    try {
-      const res = await fetch("/api/gmail/status", { method: "POST" });
-      if (res.ok) {
-        await fetchInboxData();
-        onRefreshBadge?.();
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsSyncing(false);
     }
   };
 
@@ -364,17 +565,81 @@ export function InboxTab({ onRefreshBadge }: InboxTabProps) {
         </div>
 
         {/* Action button */}
-        <div className="flex items-center gap-2 self-end sm:self-center shrink-0 w-full sm:w-auto justify-end">
+        <div className="flex items-center gap-2 self-end sm:self-center shrink-0 w-full sm:w-auto justify-end flex-wrap">
           {gmailStatus.isConnected ? (
             <>
+              {/* Auto-Sync Speed Preset Dropdown */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowSyncMenu((prev) => !prev)}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-surface-2 hover:bg-surface border border-surface-border text-xs text-gray-300 font-medium transition"
+                  title="Configure auto-sync speed (Fast, Recommended, Slow, Off)"
+                >
+                  <Clock className="w-3.5 h-3.5 text-purple-400" />
+                  <span className="hidden xs:inline text-gray-400">Auto:</span>
+                  <span className="font-semibold text-white">{SPEED_CONFIG[autoSyncSpeed].badge}</span>
+                  {autoSyncSpeed !== "off" && (
+                    <span className="text-[10px] text-purple-300 font-mono">
+                      ({formatCountdown(secondsRemaining)})
+                    </span>
+                  )}
+                  <ChevronDown className="w-3 h-3 text-gray-400" />
+                </button>
+
+                {showSyncMenu && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-30"
+                      onClick={() => setShowSyncMenu(false)}
+                    />
+                    <div className="absolute right-0 mt-1.5 w-56 rounded-xl bg-surface border border-surface-border shadow-2xl z-40 py-1.5 text-xs animate-in fade-in zoom-in-95 duration-150">
+                      <div className="px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider border-b border-surface-border">
+                        Auto-Sync Frequency
+                      </div>
+                      {(["fast", "recommended", "slow", "off"] as AutoSyncSpeed[]).map((speed) => {
+                        const cfg = SPEED_CONFIG[speed];
+                        const isSelected = autoSyncSpeed === speed;
+                        return (
+                          <button
+                            key={speed}
+                            type="button"
+                            onClick={() => handleSpeedChange(speed)}
+                            className={`w-full flex items-start justify-between px-3 py-2 text-left hover:bg-surface-2 transition ${
+                              isSelected ? "text-purple-400 font-bold bg-purple-500/10" : "text-gray-300"
+                            }`}
+                          >
+                            <div className="min-w-0 pr-2">
+                              <div className="flex items-center gap-1.5">
+                                <span>{cfg.label}</span>
+                                {speed === "recommended" && (
+                                  <span className="text-[9px] px-1 py-0.2 rounded bg-purple-500/20 text-purple-300 font-bold uppercase">
+                                    Rec
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-[10px] text-gray-500 block leading-tight mt-0.5">
+                                {cfg.description}
+                              </span>
+                            </div>
+                            {isSelected && <Check className="w-3.5 h-3.5 text-purple-400 shrink-0 mt-0.5" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
+
               <button
-                onClick={handleSyncNow}
+                onClick={() => handleSyncNow()}
                 disabled={isSyncing}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-2 hover:bg-surface border border-surface-border text-xs text-gray-200 font-medium transition disabled:opacity-50"
                 title="Scan Gmail for new updates now"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? "animate-spin text-purple-400" : ""}`} />
-                <span>{isSyncing ? "Scanning..." : "Sync Now"}</span>
+                <span className="hidden xs:inline">{isSyncing ? "Scanning..." : "Sync Now"}</span>
+                <span className="xs:hidden">{isSyncing ? "..." : "Sync"}</span>
               </button>
               <button
                 onClick={handleDisconnect}
@@ -544,6 +809,98 @@ export function InboxTab({ onRefreshBadge }: InboxTabProps) {
             </div>
           </div>
 
+          {/* Master Selection Toolbar & Bulk Actions */}
+          {emails.length > 0 && (
+            <div
+              className={`p-2.5 sm:p-3 rounded-xl border transition-all flex flex-wrap items-center justify-between gap-2.5 ${
+                selectedIds.size > 0
+                  ? "bg-purple-950/40 border-purple-800/70 shadow-lg shadow-purple-950/30"
+                  : "bg-surface-2/60 border-surface-border"
+              }`}
+            >
+              {/* Left: Master Checkbox */}
+              <button
+                type="button"
+                onClick={handleToggleSelectAll}
+                className="flex items-center gap-2 text-xs font-medium text-gray-300 hover:text-white transition select-none"
+                title={isAllSelected ? "Deselect all emails" : "Select all emails"}
+              >
+                {isAllSelected ? (
+                  <CheckSquare className="w-4 h-4 text-purple-400" />
+                ) : isPartiallySelected ? (
+                  <MinusSquare className="w-4 h-4 text-purple-400" />
+                ) : (
+                  <Square className="w-4 h-4 text-gray-400" />
+                )}
+                <span className="font-semibold text-xs">
+                  {selectedIds.size > 0 ? (
+                    <span className="text-purple-300">
+                      {selectedIds.size} of {emails.length} selected
+                    </span>
+                  ) : (
+                    <span className="text-gray-400">Select All ({emails.length})</span>
+                  )}
+                </span>
+              </button>
+
+              {/* Right: Bulk actions when emails are selected */}
+              {selectedIds.size > 0 ? (
+                <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => handleBulkMarkRead(true)}
+                    disabled={isBulkActing}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-surface hover:bg-surface-2 border border-surface-border text-xs font-medium text-emerald-300 hover:text-emerald-200 transition disabled:opacity-50"
+                    title="Mark selected emails as read"
+                  >
+                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Mark Read</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleBulkMarkRead(false)}
+                    disabled={isBulkActing}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-surface hover:bg-surface-2 border border-surface-border text-xs font-medium text-purple-300 hover:text-purple-200 transition disabled:opacity-50"
+                    title="Mark selected emails as unread"
+                  >
+                    <Mail className="w-3.5 h-3.5 text-purple-400" />
+                    <span>Mark Unread</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleBulkDelete}
+                    disabled={isBulkActing}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-red-950/50 hover:bg-red-950/80 border border-red-800/60 text-xs font-medium text-red-300 hover:text-red-200 transition disabled:opacity-50"
+                    title="Delete selected emails"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                    <span>Delete ({selectedIds.size})</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedIds(new Set())}
+                    className="px-2 py-1 text-xs text-gray-400 hover:text-gray-200 transition"
+                  >
+                    Clear
+                  </button>
+                </div>
+              ) : (
+                counts.unread > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleMarkAllRead}
+                    className="text-xs text-gray-400 hover:text-purple-300 transition underline underline-offset-2"
+                  >
+                    Mark all {counts.unread} unread as read
+                  </button>
+                )
+              )}
+            </div>
+          )}
+
           {/* Email List */}
           {emails.length === 0 ? (
             <div className="p-8 sm:p-12 rounded-2xl bg-surface border border-surface-border text-center space-y-2">
@@ -559,6 +916,7 @@ export function InboxTab({ onRefreshBadge }: InboxTabProps) {
             <div className="space-y-2.5">
               {emails.map((email) => {
                 const isExpanded = expandedId === email.id;
+                const isSelected = selectedIds.has(email.id);
                 const badge = getCategoryBadge(email.category);
                 const BadgeIcon = badge.icon;
 
@@ -568,6 +926,8 @@ export function InboxTab({ onRefreshBadge }: InboxTabProps) {
                     className={`rounded-xl border transition-all overflow-hidden ${
                       isExpanded
                         ? "bg-surface border-purple-500/70 shadow-lg shadow-purple-500/5 ring-1 ring-purple-500/30"
+                        : isSelected
+                        ? "bg-purple-950/20 border-purple-500/60 ring-1 ring-purple-500/20"
                         : "bg-surface border-surface-border hover:border-gray-700"
                     } ${!email.isRead ? "border-l-4 border-l-purple-500" : ""}`}
                   >
@@ -580,6 +940,20 @@ export function InboxTab({ onRefreshBadge }: InboxTabProps) {
                       className="p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 cursor-pointer select-none hover:bg-surface-2/40 transition"
                     >
                       <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+                        {/* Checkbox for selection */}
+                        <button
+                          type="button"
+                          onClick={(e) => handleToggleSelectOne(email.id, e)}
+                          className="p-1 -ml-1 text-gray-400 hover:text-white transition shrink-0 rounded"
+                          title={isSelected ? "Deselect email" : "Select email"}
+                        >
+                          {isSelected ? (
+                            <CheckSquare className="w-4 h-4 text-purple-400" />
+                          ) : (
+                            <Square className="w-4 h-4 text-gray-500 hover:text-gray-300" />
+                          )}
+                        </button>
+
                         {/* Unread indicator */}
                         <div
                           className={`w-2 h-2 rounded-full shrink-0 mt-1.5 sm:mt-0 ${
@@ -615,6 +989,20 @@ export function InboxTab({ onRefreshBadge }: InboxTabProps) {
 
                       {/* Right metadata & actions */}
                       <div className="flex items-center gap-2 self-end sm:self-auto shrink-0 pt-1 sm:pt-0">
+                        {/* Open in Gmail Link */}
+                        <a
+                          href={getGmailWebUrl(email)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="flex items-center gap-1 px-2 py-1 rounded-md bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-[11px] text-purple-300 hover:text-purple-200 transition font-medium shrink-0"
+                          title="Open exact email in Gmail (new tab)"
+                        >
+                          <span className="hidden xs:inline">Open in</span>
+                          <span>Gmail</span>
+                          <ExternalLink className="w-3 h-3 text-purple-400" />
+                        </a>
+
                         <div className="text-[11px] text-gray-400 flex items-center gap-1">
                           <Calendar className="w-3 h-3 text-gray-500" />
                           <span>{formatDate(email.receivedAt)}</span>
@@ -635,12 +1023,24 @@ export function InboxTab({ onRefreshBadge }: InboxTabProps) {
                           {email.bodyText || email.snippet}
                         </div>
 
-                        <div className="flex items-center justify-between pt-1">
-                          <span className="text-gray-500 text-[11px]">
+                        <div className="flex items-center justify-between pt-1 flex-wrap gap-2">
+                          <span className="text-gray-500 text-[11px] truncate max-w-full sm:max-w-md">
                             From: {email.senderEmail}
                           </span>
 
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <a
+                              href={getGmailWebUrl(email)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/40 text-purple-300 hover:text-purple-200 text-[11px] font-semibold transition"
+                              title="Open this exact email thread in Gmail"
+                            >
+                              <ExternalLink className="w-3 h-3 text-purple-400" />
+                              <span>Open in Gmail</span>
+                            </a>
+
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();

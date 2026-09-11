@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { X, Plus, Paperclip, Trash2, Upload, User, Check, AlertCircle, FileText } from "lucide-react";
+import { X, Plus, Paperclip, Trash2, Upload, User, Check, AlertCircle, FileText, Camera } from "lucide-react";
 
 interface ProfileField {
   id: string;
@@ -26,6 +26,7 @@ interface ProfileModalProps {
 
 export function ProfileModal({ isOpen, onClose, onProfileUpdated }: ProfileModalProps) {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarError, setAvatarError] = useState(false);
   const [fields, setFields] = useState<ProfileField[]>([]);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,6 +62,7 @@ export function ProfileModal({ isOpen, onClose, onProfileUpdated }: ProfileModal
       const data = await res.json();
       if (data.profile) {
         setAvatarUrl(data.profile.avatarUrl || null);
+        setAvatarError(false);
         setFields(data.profile.fields || []);
         setAttachments(data.profile.attachments || []);
       }
@@ -71,15 +73,53 @@ export function ProfileModal({ isOpen, onClose, onProfileUpdated }: ProfileModal
     }
   };
 
+  const compressImage = (file: File, maxWidth = 350, quality = 0.85): Promise<Blob> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          let { width, height } = img;
+          if (width > height) {
+            if (width > maxWidth) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            }
+          } else {
+            if (height > maxWidth) {
+              width = Math.round((width * maxWidth) / height);
+              height = maxWidth;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx?.drawImage(img, 0, 0, width, height);
+          canvas.toBlob(
+            (blob) => resolve(blob || file),
+            "image/jpeg",
+            quality
+          );
+        };
+        img.onerror = () => resolve(file);
+      };
+      reader.onerror = () => resolve(file);
+    });
+  };
+
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setUploadingAvatar(true);
-    const formData = new FormData();
-    formData.append("avatar", file);
-
     try {
+      const compressedBlob = await compressImage(file);
+      const formData = new FormData();
+      formData.append("avatar", compressedBlob, file.name);
+
       const res = await fetch("/api/profile/avatar", {
         method: "POST",
         body: formData,
@@ -87,11 +127,14 @@ export function ProfileModal({ isOpen, onClose, onProfileUpdated }: ProfileModal
       const data = await res.json();
       if (res.ok && data.avatarUrl) {
         setAvatarUrl(data.avatarUrl);
-        setMessage({ type: "success", text: "Profile picture updated!" });
+        setAvatarError(false);
+        setMessage({ type: "success", text: "Profile picture updated successfully!" });
         onProfileUpdated?.();
+      } else {
+        throw new Error(data.error || "Failed to upload avatar");
       }
     } catch (err: any) {
-      setMessage({ type: "error", text: "Failed to upload avatar" });
+      setMessage({ type: "error", text: err.message || "Failed to upload avatar" });
     } finally {
       setUploadingAvatar(false);
     }
@@ -224,16 +267,33 @@ export function ProfileModal({ isOpen, onClose, onProfileUpdated }: ProfileModal
           <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-3.5 sm:gap-5 p-4 rounded-xl bg-surface-2/60 border border-surface-border">
             <div className="relative group shrink-0">
               <div className="w-20 h-20 rounded-full border-2 border-accent-blue/50 overflow-hidden bg-surface-2 flex items-center justify-center shadow-lg mx-auto">
-                {avatarUrl ? (
-                  <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                {avatarUrl && !avatarError ? (
+                  <img
+                    src={avatarUrl}
+                    alt="Avatar"
+                    className="w-full h-full object-cover"
+                    onError={() => setAvatarError(true)}
+                  />
                 ) : (
                   <User className="w-8 h-8 text-gray-400" />
                 )}
               </div>
+              {/* Visible Camera Overlay / Tap badge */}
               <button
+                type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploadingAvatar}
-                className="absolute inset-0 rounded-full bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition text-xs font-semibold"
+                className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-accent-blue hover:bg-blue-600 text-white flex items-center justify-center shadow-md border-2 border-surface transition"
+                title="Upload Photo"
+                aria-label="Upload Photo"
+              >
+                <Camera className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingAvatar}
+                className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition text-xs font-semibold"
               >
                 <Upload className="w-4 h-4" />
               </button>
@@ -249,15 +309,25 @@ export function ProfileModal({ isOpen, onClose, onProfileUpdated }: ProfileModal
             <div className="flex-1">
               <h3 className="font-semibold text-sm text-white">Profile Photo</h3>
               <p className="text-xs text-gray-400 mt-0.5">
-                Used for applications that require a candidate photo.
+                Saved permanently in your account and used for applications that require a candidate photo.
               </p>
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploadingAvatar}
-                className="mt-2 text-xs font-medium text-accent-blue hover:underline"
-              >
-                {uploadingAvatar ? "Uploading..." : "Click to change photo"}
-              </button>
+              <div className="flex items-center gap-3 mt-2">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingAvatar}
+                  className="text-xs font-medium text-accent-blue hover:underline flex items-center gap-1.5"
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                  <span>{uploadingAvatar ? "Processing & Uploading..." : "Choose Photo"}</span>
+                </button>
+                {avatarUrl && !avatarError && (
+                  <span className="text-[11px] text-accent-emerald flex items-center gap-1 font-medium">
+                    <Check className="w-3 h-3" />
+                    Photo active
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 

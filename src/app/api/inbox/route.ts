@@ -68,7 +68,7 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { id, isRead, markAllRead } = await req.json();
+    const { id, ids, isRead, markAllRead } = await req.json();
 
     if (markAllRead) {
       await prisma.jobEmail.updateMany({
@@ -78,8 +78,16 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ success: true });
     }
 
+    if (Array.isArray(ids) && ids.length > 0) {
+      const updated = await prisma.jobEmail.updateMany({
+        where: { id: { in: ids }, userId: user.id },
+        data: { isRead: !!isRead },
+      });
+      return NextResponse.json({ success: true, count: updated.count });
+    }
+
     if (!id) {
-      return NextResponse.json({ error: "Email ID is required" }, { status: 400 });
+      return NextResponse.json({ error: "Email ID or IDs required" }, { status: 400 });
     }
 
     const updated = await prisma.jobEmail.updateMany({
@@ -100,9 +108,24 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { id } = await req.json();
+    const { id, ids, deleteAll } = await req.json();
+
+    if (deleteAll) {
+      const deleted = await prisma.jobEmail.deleteMany({
+        where: { userId: user.id },
+      });
+      return NextResponse.json({ success: true, count: deleted.count });
+    }
+
+    if (Array.isArray(ids) && ids.length > 0) {
+      const deleted = await prisma.jobEmail.deleteMany({
+        where: { id: { in: ids }, userId: user.id },
+      });
+      return NextResponse.json({ success: true, count: deleted.count });
+    }
+
     if (!id) {
-      return NextResponse.json({ error: "Email ID is required" }, { status: 400 });
+      return NextResponse.json({ error: "Email ID or IDs required" }, { status: 400 });
     }
 
     await prisma.jobEmail.deleteMany({

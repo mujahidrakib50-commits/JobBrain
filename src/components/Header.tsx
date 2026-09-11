@@ -30,7 +30,12 @@ export function Header({
   activeBrain,
 }: HeaderProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setAvatarError(false);
+  }, [avatarUrl]);
 
   const handleLogout = async () => {
     try {
@@ -131,8 +136,13 @@ export function Header({
             title="Profile & Settings"
           >
             <div className="w-8 h-8 rounded-full overflow-hidden bg-surface flex items-center justify-center border border-surface-border group-hover:border-accent-blue/50 transition">
-              {avatarUrl ? (
-                <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+              {avatarUrl && !avatarError ? (
+                <img
+                  src={avatarUrl}
+                  alt="Avatar"
+                  className="w-full h-full object-cover"
+                  onError={() => setAvatarError(true)}
+                />
               ) : (
                 <User className="w-4 h-4 text-gray-400 group-hover:text-white transition" />
               )}
@@ -141,23 +151,37 @@ export function Header({
           </button>
 
           {dropdownOpen && (
-            <div className="absolute right-0 mt-2 w-56 rounded-xl bg-surface border border-surface-border shadow-2xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
-              <div className="px-3 py-2 border-b border-surface-border">
-                <div className="flex items-center justify-between gap-1 mb-0.5">
-                  <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
-                    Account
-                  </span>
-                  <span className="inline-flex items-center gap-1 text-[10px] text-accent-emerald font-medium">
-                    <span className="w-1.5 h-1.5 rounded-full bg-accent-emerald animate-pulse" />
-                    Active
-                  </span>
+            <div className="absolute right-0 mt-2 w-60 rounded-xl bg-surface border border-surface-border shadow-2xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+              <div className="px-3 py-2 border-b border-surface-border flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full overflow-hidden bg-surface-2 border border-surface-border shrink-0 flex items-center justify-center">
+                  {avatarUrl && !avatarError ? (
+                    <img
+                      src={avatarUrl}
+                      alt="Avatar"
+                      className="w-full h-full object-cover"
+                      onError={() => setAvatarError(true)}
+                    />
+                  ) : (
+                    <User className="w-4 h-4 text-gray-400" />
+                  )}
                 </div>
-                <p
-                  className="text-xs font-semibold text-white truncate"
-                  title={userEmail || "Signed In"}
-                >
-                  {userEmail || "Signed In"}
-                </p>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-1 mb-0.5">
+                    <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                      Account
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-[10px] text-accent-emerald font-medium">
+                      <span className="w-1.5 h-1.5 rounded-full bg-accent-emerald animate-pulse" />
+                      Active
+                    </span>
+                  </div>
+                  <p
+                    className="text-xs font-semibold text-white truncate"
+                    title={userEmail || "Signed In"}
+                  >
+                    {userEmail || "Signed In"}
+                  </p>
+                </div>
               </div>
 
               <button
