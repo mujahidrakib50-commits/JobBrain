@@ -224,24 +224,24 @@ export function WaitingTab({ tasks, onRefresh, onDeleteTask }: WaitingTabProps) 
             {/* 1-Line Compact Accordion Header */}
             <div
               onClick={() => toggleAccordion(task.id)}
-              className="p-4 flex items-center justify-between gap-3 cursor-pointer select-none bg-surface hover:bg-surface-2/60 transition"
+              className="p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer select-none bg-surface hover:bg-surface-2/60 transition"
             >
-              <div className="flex items-center gap-3 min-w-0">
+              <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
                 <div
-                  className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                  className={`w-2.5 h-2.5 rounded-full shrink-0 mt-1.5 sm:mt-0 ${
                     requiredMissing === 0
                       ? "bg-accent-emerald shadow-[0_0_8px_#10b981]"
                       : "bg-accent-amber shadow-[0_0_8px_#f59e0b]"
                   }`}
                 />
 
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-semibold text-sm sm:text-base text-white truncate">
+                    <h3 className="font-semibold text-sm sm:text-base text-white truncate max-w-[200px] xs:max-w-[260px] sm:max-w-none">
                       {task.title || "Job Application"}
                     </h3>
                     <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider shrink-0 ${
                         requiredMissing === 0
                           ? "bg-emerald-950/60 border border-emerald-800 text-accent-emerald"
                           : "bg-amber-950/60 border border-amber-800/80 text-accent-amber"
@@ -251,7 +251,7 @@ export function WaitingTab({ tasks, onRefresh, onDeleteTask }: WaitingTabProps) 
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-400">
+                  <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-400 flex-wrap">
                     <span className="font-semibold text-gray-300">
                       {task.organization || "Company"}
                     </span>
@@ -265,7 +265,7 @@ export function WaitingTab({ tasks, onRefresh, onDeleteTask }: WaitingTabProps) 
               </div>
 
               {/* Right Controls */}
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-2 self-end sm:self-auto shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-surface-border/40 w-full sm:w-auto justify-end">
                 <button
                   onClick={(e) => handleCopy(e, task.id, task.url)}
                   className="p-2 rounded-lg bg-surface-2 border border-surface-border hover:border-gray-600 text-gray-400 hover:text-white transition"
@@ -539,7 +539,7 @@ export function WaitingTab({ tasks, onRefresh, onDeleteTask }: WaitingTabProps) 
                   <button
                     onClick={() => handleRestart(task, fields)}
                     disabled={restartingId === task.id}
-                    className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-accent-blue hover:bg-blue-600 disabled:opacity-50 text-white font-semibold text-xs transition shadow-lg shadow-blue-500/20 shrink-0"
+                    className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-accent-blue hover:bg-blue-600 disabled:opacity-50 text-white font-semibold text-xs transition shadow-lg shadow-blue-500/20 w-full sm:w-auto shrink-0"
                   >
                     {restartingId === task.id ? (
                       <>

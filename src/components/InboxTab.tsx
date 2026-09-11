@@ -337,25 +337,25 @@ export function InboxTab({ onRefreshBadge }: InboxTabProps) {
     <div className="w-full max-w-4xl mx-auto space-y-4">
       {/* Top Banner: Connection status & actions */}
       <div className="p-4 sm:p-5 rounded-2xl bg-surface border border-surface-border shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
+        <div className="flex items-center gap-3 sm:gap-3.5 min-w-0 flex-1">
           <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 shrink-0">
             <Mail className="w-5 h-5" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
               <h2 className="text-sm sm:text-base font-bold text-white">Gmail Job Inbox Monitor</h2>
               {gmailStatus.isConnected ? (
-                <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-400 bg-emerald-950/50 border border-emerald-800 px-2 py-0.5 rounded-full">
+                <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-400 bg-emerald-950/50 border border-emerald-800 px-2 py-0.5 rounded-full shrink-0">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                   <span>Connected</span>
                 </span>
               ) : (
-                <span className="text-[11px] font-semibold text-gray-400 bg-surface-2 border border-surface-border px-2 py-0.5 rounded-full">
+                <span className="text-[11px] font-semibold text-gray-400 bg-surface-2 border border-surface-border px-2 py-0.5 rounded-full shrink-0">
                   Not Connected
                 </span>
               )}
             </div>
-            <p className="text-xs text-gray-400 mt-0.5">
+            <p className="text-xs text-gray-400 mt-0.5 truncate">
               {gmailStatus.isConnected
                 ? `Account: ${gmailStatus.email} • Auto-scanning for rejections, responses & matches`
                 : "Connect your Gmail to automatically monitor responses & application outcomes."}
@@ -364,7 +364,7 @@ export function InboxTab({ onRefreshBadge }: InboxTabProps) {
         </div>
 
         {/* Action button */}
-        <div className="flex items-center gap-2 self-end sm:self-center">
+        <div className="flex items-center gap-2 self-end sm:self-center shrink-0 w-full sm:w-auto justify-end">
           {gmailStatus.isConnected ? (
             <>
               <button
@@ -387,7 +387,7 @@ export function InboxTab({ onRefreshBadge }: InboxTabProps) {
           ) : (
             <button
               onClick={() => setShowConfigModal(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 font-semibold text-xs sm:text-sm text-white shadow-lg shadow-purple-600/20 transition"
+              className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 font-semibold text-xs sm:text-sm text-white shadow-lg shadow-purple-600/20 transition w-full sm:w-auto"
             >
               <Mail className="w-4 h-4" />
               <span>Connect Gmail</span>
@@ -398,9 +398,9 @@ export function InboxTab({ onRefreshBadge }: InboxTabProps) {
 
       {/* Main Inbox View if connected, else prompt */}
       {!gmailStatus.isConnected ? (
-        <div className="p-8 sm:p-12 rounded-2xl bg-surface border border-surface-border text-center space-y-4">
-          <div className="w-16 h-16 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center mx-auto text-purple-400">
-            <Mail className="w-8 h-8" />
+        <div className="p-6 sm:p-12 rounded-2xl bg-surface border border-surface-border text-center space-y-4">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center mx-auto text-purple-400">
+            <Mail className="w-7 h-7 sm:w-8 sm:h-8" />
           </div>
           <div className="max-w-md mx-auto">
             <h3 className="text-base sm:text-lg font-bold text-white">Automate Your Application Follow-ups</h3>
@@ -436,12 +436,12 @@ export function InboxTab({ onRefreshBadge }: InboxTabProps) {
 
             <button
               onClick={() => setShowConfigModal(true)}
-              className="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 font-semibold text-sm text-white shadow-lg shadow-purple-600/25 transition"
+              className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 font-semibold text-sm text-white shadow-lg shadow-purple-600/25 transition"
             >
               Connect Gmail Account
             </button>
             <div className="mt-3 flex items-center justify-center gap-1.5 text-[11px] text-gray-500">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
               <span>Read-only access. JobBrain never sends, deletes, or modifies your emails.</span>
             </div>
           </div>
@@ -451,10 +451,10 @@ export function InboxTab({ onRefreshBadge }: InboxTabProps) {
           {/* Filter Pills & Toolbar */}
           <div className="space-y-3">
             {/* Category Pills */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
+            <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none pb-1 text-xs">
               <button
                 onClick={() => setSelectedCategory("all")}
-                className={`px-3 py-1.5 rounded-lg border font-semibold transition shrink-0 ${
+                className={`px-3 py-1.5 rounded-lg border font-semibold transition shrink-0 whitespace-nowrap ${
                   selectedCategory === "all"
                     ? "bg-purple-600 border-purple-500 text-white shadow-md shadow-purple-600/20"
                     : "bg-surface-2 border-surface-border text-gray-400 hover:text-gray-200"
@@ -465,7 +465,7 @@ export function InboxTab({ onRefreshBadge }: InboxTabProps) {
 
               <button
                 onClick={() => setSelectedCategory("REJECTION")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border font-semibold transition shrink-0 ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border font-semibold transition shrink-0 whitespace-nowrap ${
                   selectedCategory === "REJECTION"
                     ? "bg-red-950 border-red-700 text-red-300 shadow-md shadow-red-950/30"
                     : "bg-surface-2 border-surface-border text-gray-400 hover:text-red-400"
@@ -477,7 +477,7 @@ export function InboxTab({ onRefreshBadge }: InboxTabProps) {
 
               <button
                 onClick={() => setSelectedCategory("POSITIVE")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border font-semibold transition shrink-0 ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border font-semibold transition shrink-0 whitespace-nowrap ${
                   selectedCategory === "POSITIVE"
                     ? "bg-emerald-950 border-emerald-700 text-emerald-300 shadow-md shadow-emerald-950/30"
                     : "bg-surface-2 border-surface-border text-gray-400 hover:text-emerald-400"
@@ -489,7 +489,7 @@ export function InboxTab({ onRefreshBadge }: InboxTabProps) {
 
               <button
                 onClick={() => setSelectedCategory("JOB_MATCH")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border font-semibold transition shrink-0 ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border font-semibold transition shrink-0 whitespace-nowrap ${
                   selectedCategory === "JOB_MATCH"
                     ? "bg-sky-950 border-sky-700 text-sky-300 shadow-md shadow-sky-950/30"
                     : "bg-surface-2 border-surface-border text-gray-400 hover:text-sky-400"
@@ -501,9 +501,9 @@ export function InboxTab({ onRefreshBadge }: InboxTabProps) {
             </div>
 
             {/* Search & Sort Row */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-xs">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3 text-xs">
               {/* Search */}
-              <div className="relative flex-1 max-w-sm">
+              <div className="relative flex-1 max-w-full sm:max-w-sm">
                 <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-gray-500" />
                 <input
                   type="text"
@@ -515,7 +515,7 @@ export function InboxTab({ onRefreshBadge }: InboxTabProps) {
               </div>
 
               {/* Sort Controls & Mark Read */}
-              <div className="flex items-center gap-2 self-end sm:self-auto">
+              <div className="flex items-center gap-2 self-end sm:self-auto flex-wrap">
                 <span className="text-gray-400 flex items-center gap-1 shrink-0">
                   <ArrowUpDown className="w-3 h-3 text-gray-400" />
                   <span>Sort:</span>
@@ -546,7 +546,7 @@ export function InboxTab({ onRefreshBadge }: InboxTabProps) {
 
           {/* Email List */}
           {emails.length === 0 ? (
-            <div className="p-12 rounded-2xl bg-surface border border-surface-border text-center space-y-2">
+            <div className="p-8 sm:p-12 rounded-2xl bg-surface border border-surface-border text-center space-y-2">
               <Mail className="w-8 h-8 text-gray-600 mx-auto" />
               <p className="text-sm text-gray-300 font-semibold">No emails found</p>
               <p className="text-xs text-gray-500 max-w-sm mx-auto">
@@ -577,12 +577,12 @@ export function InboxTab({ onRefreshBadge }: InboxTabProps) {
                         setExpandedId(isExpanded ? null : email.id);
                         if (!email.isRead) handleToggleRead(email.id, false);
                       }}
-                      className="p-3.5 sm:p-4 flex items-center justify-between gap-3 cursor-pointer select-none hover:bg-surface-2/40 transition"
+                      className="p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 cursor-pointer select-none hover:bg-surface-2/40 transition"
                     >
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
                         {/* Unread indicator */}
                         <div
-                          className={`w-2 h-2 rounded-full shrink-0 ${
+                          className={`w-2 h-2 rounded-full shrink-0 mt-1.5 sm:mt-0 ${
                             !email.isRead
                               ? "bg-purple-400 shadow-[0_0_8px_#a855f7]"
                               : "bg-transparent"
@@ -592,11 +592,11 @@ export function InboxTab({ onRefreshBadge }: InboxTabProps) {
                         {/* Details */}
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-semibold text-xs sm:text-sm text-white truncate max-w-[200px] sm:max-w-none">
+                            <span className="font-semibold text-xs sm:text-sm text-white truncate max-w-[180px] xs:max-w-[240px] sm:max-w-none">
                               {email.sender}
                             </span>
                             <span
-                              className={`flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-wider ${badge.bg}`}
+                              className={`flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-wider shrink-0 ${badge.bg}`}
                             >
                               <BadgeIcon className="w-3 h-3" />
                               <span>{badge.label}</span>
@@ -614,7 +614,7 @@ export function InboxTab({ onRefreshBadge }: InboxTabProps) {
                       </div>
 
                       {/* Right metadata & actions */}
-                      <div className="flex items-center gap-2 text-right shrink-0">
+                      <div className="flex items-center gap-2 self-end sm:self-auto shrink-0 pt-1 sm:pt-0">
                         <div className="text-[11px] text-gray-400 flex items-center gap-1">
                           <Calendar className="w-3 h-3 text-gray-500" />
                           <span>{formatDate(email.receivedAt)}</span>
@@ -675,27 +675,27 @@ export function InboxTab({ onRefreshBadge }: InboxTabProps) {
 
       {/* Connect Gmail Modal with Dual Method */}
       {showConfigModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-lg rounded-2xl bg-surface border border-surface-border shadow-2xl p-6 relative">
-            <div className="flex items-center justify-between pb-4 border-b border-surface-border mb-4">
-              <div className="flex items-center gap-2 text-white font-bold text-base">
-                <Mail className="w-5 h-5 text-purple-400" />
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+          <div className="w-[95vw] sm:w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-surface border border-surface-border shadow-2xl p-4 sm:p-6 relative">
+            <div className="flex items-center justify-between pb-3.5 sm:pb-4 border-b border-surface-border mb-4">
+              <div className="flex items-center gap-2 text-white font-bold text-sm sm:text-base">
+                <Mail className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400 shrink-0" />
                 <span>Connect Gmail to JobBrain</span>
               </div>
               <button
                 onClick={() => setShowConfigModal(false)}
-                className="text-gray-400 hover:text-white text-lg leading-none"
+                className="text-gray-400 hover:text-white text-lg leading-none p-1"
               >
                 &times;
               </button>
             </div>
 
             {/* Method Tabs */}
-            <div className="flex border-b border-surface-border mb-4">
+            <div className="flex border-b border-surface-border mb-4 overflow-x-auto scrollbar-none">
               <button
                 type="button"
                 onClick={() => setConnectMethod("app_password")}
-                className={`flex items-center gap-1.5 px-3 py-2 border-b-2 text-xs font-semibold transition ${
+                className={`flex items-center gap-1.5 px-3 py-2 border-b-2 text-xs font-semibold transition shrink-0 whitespace-nowrap ${
                   connectMethod === "app_password"
                     ? "border-purple-500 text-purple-400"
                     : "border-transparent text-gray-400 hover:text-gray-200"
@@ -708,7 +708,7 @@ export function InboxTab({ onRefreshBadge }: InboxTabProps) {
               <button
                 type="button"
                 onClick={() => setConnectMethod("oauth")}
-                className={`flex items-center gap-1.5 px-3 py-2 border-b-2 text-xs font-semibold transition ${
+                className={`flex items-center gap-1.5 px-3 py-2 border-b-2 text-xs font-semibold transition shrink-0 whitespace-nowrap ${
                   connectMethod === "oauth"
                     ? "border-purple-500 text-purple-400"
                     : "border-transparent text-gray-400 hover:text-gray-200"
@@ -783,18 +783,18 @@ export function InboxTab({ onRefreshBadge }: InboxTabProps) {
                     </p>
                   </div>
 
-                  <div className="flex justify-end gap-2 pt-2">
+                  <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2">
                     <button
                       type="button"
                       onClick={() => setShowConfigModal(false)}
-                      className="px-4 py-2 rounded-xl bg-surface-2 text-gray-300 hover:text-white text-xs font-medium transition"
+                      className="w-full sm:w-auto px-4 py-2 rounded-xl bg-surface-2 text-gray-300 hover:text-white text-xs font-medium transition text-center"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
                       disabled={isConnectingAppPass}
-                      className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-lg shadow-purple-600/20 transition disabled:opacity-50 flex items-center gap-1.5"
+                      className="w-full sm:w-auto px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-lg shadow-purple-600/20 transition disabled:opacity-50 flex items-center justify-center gap-1.5"
                     >
                       {isConnectingAppPass ? (
                         <>
@@ -867,18 +867,18 @@ export function InboxTab({ onRefreshBadge }: InboxTabProps) {
                     />
                   </div>
 
-                  <div className="flex justify-end gap-2 pt-2">
+                  <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2">
                     <button
                       type="button"
                       onClick={() => setShowConfigModal(false)}
-                      className="px-4 py-2 rounded-xl bg-surface-2 text-gray-300 hover:text-white text-xs font-medium transition"
+                      className="w-full sm:w-auto px-4 py-2 rounded-xl bg-surface-2 text-gray-300 hover:text-white text-xs font-medium transition text-center"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
                       disabled={isSavingConfig}
-                      className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-lg shadow-purple-600/20 transition disabled:opacity-50"
+                      className="w-full sm:w-auto px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-lg shadow-purple-600/20 transition disabled:opacity-50 text-center"
                     >
                       {isSavingConfig ? "Saving..." : "Save & Connect via OAuth"}
                     </button>

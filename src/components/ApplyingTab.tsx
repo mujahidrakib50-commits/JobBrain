@@ -94,9 +94,9 @@ export function ApplyingTab({
       {/* Applying Queue */}
       {tasks.length > 0 && (
         <div className="space-y-3">
-          <div className="flex items-center justify-between text-xs text-gray-400 px-1">
-            <span>Execution Sequence ({tasks.length} in queue)</span>
-            <span>Processes 1 job at a time • Or click ▶ on any job to apply now</span>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs text-gray-400 px-1">
+            <span className="font-semibold text-gray-300">Execution Sequence ({tasks.length} in queue)</span>
+            <span className="text-[11px] text-gray-500">Processes 1 job at a time • Or click ▶ to apply now</span>
           </div>
 
           {tasks.map((task, index) => {
@@ -106,21 +106,21 @@ export function ApplyingTab({
             return (
               <div
                 key={task.id}
-                className={`p-4 rounded-xl bg-surface border transition shadow-lg relative group ${
+                className={`p-3.5 sm:p-4 rounded-xl bg-surface border transition shadow-lg relative group ${
                   isCurrentlyProcessing
                     ? "border-accent-blue/80 shadow-blue-500/10 ring-1 ring-accent-blue/30"
                     : "border-surface-border hover:border-gray-700"
                 }`}
               >
-                <div className="flex items-center justify-between gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
                   {/* Left: Drag / Order Controls & Info */}
-                  <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
                     {/* Order controls */}
-                    <div className="flex flex-col items-center justify-center shrink-0 text-gray-500">
+                    <div className="flex flex-col items-center justify-center shrink-0 text-gray-500 pt-0.5 sm:pt-0">
                       <button
                         onClick={() => moveTask(index, "up")}
                         disabled={index === 0}
-                        className="hover:text-white disabled:opacity-20 transition"
+                        className="hover:text-white disabled:opacity-20 transition p-0.5"
                         title="Move Up"
                       >
                         <ArrowUp className="w-3.5 h-3.5" />
@@ -131,26 +131,26 @@ export function ApplyingTab({
                       <button
                         onClick={() => moveTask(index, "down")}
                         disabled={index === tasks.length - 1}
-                        className="hover:text-white disabled:opacity-20 transition"
+                        className="hover:text-white disabled:opacity-20 transition p-0.5"
                         title="Move Down"
                       >
                         <ArrowDown className="w-3.5 h-3.5" />
                       </button>
                     </div>
 
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-semibold text-sm sm:text-base text-white truncate">
+                        <h3 className="font-semibold text-sm sm:text-base text-white truncate max-w-[200px] xs:max-w-[260px] sm:max-w-none">
                           {task.title || "Pending extraction..."}
                         </h3>
                         {task.detectedLang && task.detectedLang !== "en" && (
-                          <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-surface-2 border border-surface-border text-gray-400">
+                          <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-surface-2 border border-surface-border text-gray-400 shrink-0">
                             {task.detectedLang} → EN
                           </span>
                         )}
                       </div>
 
-                      <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-400">
+                      <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-400 flex-wrap">
                         <span className="font-semibold text-gray-300">
                           {task.organization || "Company"}
                         </span>
@@ -173,7 +173,7 @@ export function ApplyingTab({
                   </div>
 
                   {/* Right Actions */}
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-2 self-end sm:self-auto shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-surface-border/40 w-full sm:w-auto justify-end">
                     {/* Start Only This Task Button */}
                     <button
                       onClick={() => handleSingleApplyClick(task.id)}
@@ -232,7 +232,7 @@ export function ApplyingTab({
       {failedTasks.length > 0 && (
         <div className="mt-8 pt-6 border-t border-surface-border/60">
           <div className="flex items-center gap-2 text-xs font-semibold text-accent-red mb-3">
-            <AlertTriangle className="w-4 h-4" />
+            <AlertTriangle className="w-4 h-4 shrink-0" />
             <span>Failed Jobs ({failedTasks.length}) — Click Retry to attempt again</span>
           </div>
 
@@ -240,9 +240,9 @@ export function ApplyingTab({
             {failedTasks.map((task) => (
               <div
                 key={task.id}
-                className="p-4 rounded-xl bg-red-950/20 border border-red-900/50 flex items-center justify-between gap-4"
+                className="p-3.5 sm:p-4 rounded-xl bg-red-950/20 border border-red-900/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4"
               >
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <h4 className="font-medium text-sm text-gray-200 truncate">
                     {task.title || "Job Application"}
                   </h4>
@@ -250,13 +250,13 @@ export function ApplyingTab({
                     {task.organization || "Company"}
                   </div>
                   {task.failureReason && (
-                    <div className="text-[11px] text-red-400 mt-1 font-mono">
+                    <div className="text-[11px] text-red-400 mt-1 font-mono break-words">
                       {task.failureReason}
                     </div>
                   )}
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-2 self-end sm:self-auto shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-red-900/30 w-full sm:w-auto justify-end">
                   <button
                     onClick={() => handleCopy(task.id, task.url)}
                     className="p-2 rounded-lg bg-surface-2 border border-surface-border text-gray-400 hover:text-white transition"

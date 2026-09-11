@@ -60,8 +60,8 @@ export function TabsHeader({ activeTab, onChangeTab, counts }: TabsHeaderProps) 
   ];
 
   return (
-    <div className="w-full max-w-4xl mx-auto border-b border-surface-border mb-6">
-      <div className="flex gap-2 sm:gap-4">
+    <div className="w-full max-w-4xl mx-auto border-b border-surface-border mb-6 overflow-hidden">
+      <div className="flex items-center gap-1 sm:gap-4 overflow-x-auto scrollbar-none pb-0.5">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -70,16 +70,16 @@ export function TabsHeader({ activeTab, onChangeTab, counts }: TabsHeaderProps) 
             <button
               key={tab.id}
               onClick={() => onChangeTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-3 border-b-2 font-medium text-xs sm:text-sm transition relative ${
+              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 border-b-2 font-medium text-xs sm:text-sm transition relative shrink-0 whitespace-nowrap ${
                 isActive
                   ? tab.borderActive
                   : "border-transparent text-gray-400 hover:text-gray-200"
               }`}
             >
-              <Icon className={`w-4 h-4 ${isActive ? tab.color : "text-gray-500"}`} />
+              <Icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isActive ? tab.color : "text-gray-500"}`} />
               <span>{tab.label}</span>
               <span
-                className={`text-[11px] px-2 py-0.5 rounded-full font-semibold transition ${
+                className={`text-[10px] sm:text-[11px] px-1.5 sm:px-2 py-0.5 rounded-full font-semibold transition ${
                   isActive ? tab.badgeActive : tab.badgeInactive
                 }`}
               >

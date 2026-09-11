@@ -77,12 +77,12 @@ export function AppliedTab({ tasks, onDeleteTask }: AppliedTabProps) {
   return (
     <div className="w-full max-w-4xl mx-auto space-y-3">
       {tasks.length > 0 && (
-        <div className="flex items-center justify-between pb-1 px-1">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1 px-1">
           <div className="text-xs text-gray-400">
             <span>{tasks.length} {tasks.length === 1 ? "application" : "applications"} submitted</span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 self-end sm:self-auto">
             <span className="text-xs text-gray-400 flex items-center gap-1">
               <ArrowUpDown className="w-3 h-3 text-gray-400" />
               <span>Sort:</span>
@@ -134,24 +134,24 @@ export function AppliedTab({ tasks, onDeleteTask }: AppliedTabProps) {
             {/* 1-Line Accordion Header */}
             <div
               onClick={() => toggleAccordion(task.id)}
-              className="p-4 flex items-center justify-between gap-3 cursor-pointer select-none bg-surface hover:bg-surface-2/60 transition"
+              className="p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer select-none bg-surface hover:bg-surface-2/60 transition"
             >
               {/* Left Info */}
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-2.5 h-2.5 rounded-full bg-accent-emerald shadow-[0_0_8px_#10b981] shrink-0" />
+              <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+                <div className="w-2.5 h-2.5 rounded-full bg-accent-emerald shadow-[0_0_8px_#10b981] shrink-0 mt-1.5 sm:mt-0" />
 
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-semibold text-sm sm:text-base text-white truncate">
+                    <h3 className="font-semibold text-sm sm:text-base text-white truncate max-w-[200px] xs:max-w-[260px] sm:max-w-none">
                       {task.title || "Job Application"}
                     </h3>
-                    <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-950/60 border border-emerald-800 text-accent-emerald uppercase tracking-wider">
+                    <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-950/60 border border-emerald-800 text-accent-emerald uppercase tracking-wider shrink-0">
                       <CheckCircle2 className="w-3 h-3" />
                       <span>Submitted</span>
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
+                  <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-400 flex-wrap">
                     <span className="font-semibold text-gray-300">
                       {task.organization || "Company"}
                     </span>
@@ -165,7 +165,7 @@ export function AppliedTab({ tasks, onDeleteTask }: AppliedTabProps) {
               </div>
 
               {/* Right Controls */}
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-2 self-end sm:self-auto shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-surface-border/40 w-full sm:w-auto justify-end">
                 {/* Icon-only Copy Button */}
                 <button
                   onClick={(e) => handleCopy(e, task.id, task.url)}

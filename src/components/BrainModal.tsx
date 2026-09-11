@@ -163,13 +163,13 @@ export function BrainModal({ isOpen, onClose, onBrainSwitched }: BrainModalProps
   const activeKey = keys.find((k) => k.isActive);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="w-full max-w-2xl max-h-[90vh] bg-surface border border-surface-border rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="w-[96vw] sm:w-full max-w-2xl max-h-[92vh] bg-surface border border-surface-border rounded-2xl shadow-2xl flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-surface-border flex items-center justify-between">
+        <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-surface-border flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <Cpu className="w-5 h-5 text-purple-400" />
-            <h2 className="font-bold text-lg text-white">Brain / AI Models</h2>
+            <h2 className="font-bold text-base sm:text-lg text-white">Brain / AI Models</h2>
           </div>
           <button
             onClick={onClose}
@@ -180,14 +180,14 @@ export function BrainModal({ isOpen, onClose, onBrainSwitched }: BrainModalProps
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto space-y-6 flex-1">
+        <div className="p-4 sm:p-6 overflow-y-auto space-y-5 sm:space-y-6 flex-1">
           {/* Active Brain Banner */}
-          <div className="p-4 rounded-xl bg-purple-950/20 border border-purple-800/40 flex items-center justify-between gap-4">
-            <div>
+          <div className="p-3.5 sm:p-4 rounded-xl bg-purple-950/20 border border-purple-800/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+            <div className="min-w-0 flex-1">
               <span className="text-[11px] font-semibold text-purple-400 uppercase tracking-wider">
                 Current Active Brain
               </span>
-              <div className="text-base font-bold text-white mt-0.5">
+              <div className="text-sm sm:text-base font-bold text-white mt-0.5 truncate">
                 {activeKey ? `${activeKey.label} (${activeKey.model})` : "No Active Brain Key"}
               </div>
               <p className="text-xs text-gray-400 mt-0.5">
@@ -197,7 +197,7 @@ export function BrainModal({ isOpen, onClose, onBrainSwitched }: BrainModalProps
               </p>
             </div>
             {activeKey && (
-              <span className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full bg-accent-emerald text-gray-950 shadow-md shadow-emerald-500/20">
+              <span className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full bg-accent-emerald text-gray-950 shadow-md shadow-emerald-500/20 self-end sm:self-auto shrink-0">
                 <Check className="w-3.5 h-3.5" />
                 <span>Running</span>
               </span>
@@ -205,11 +205,11 @@ export function BrainModal({ isOpen, onClose, onBrainSwitched }: BrainModalProps
           </div>
 
           {/* Key List Header */}
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
             <h3 className="font-bold text-sm text-white">Saved Brain Keys</h3>
             <button
               onClick={() => setShowAddForm(!showAddForm)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent-blue hover:bg-blue-600 text-white text-xs font-semibold shadow-md shadow-blue-500/20 transition"
+              className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent-blue hover:bg-blue-600 text-white text-xs font-semibold shadow-md shadow-blue-500/20 transition w-full sm:w-auto self-end sm:self-auto shrink-0"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Add New Key</span>
@@ -319,28 +319,28 @@ export function BrainModal({ isOpen, onClose, onBrainSwitched }: BrainModalProps
 
               {error && <div className="text-xs text-red-400">{error}</div>}
 
-              <div className="flex items-center justify-between pt-1">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-1">
                 <button
                   type="button"
                   onClick={handleTestConnection}
                   disabled={testing || !apiKey.trim()}
-                  className="px-3 py-1.5 rounded-lg bg-surface border border-surface-border text-xs text-gray-300 hover:text-white disabled:opacity-50"
+                  className="w-full sm:w-auto px-3 py-1.5 rounded-lg bg-surface border border-surface-border text-xs text-gray-300 hover:text-white disabled:opacity-50 text-center"
                 >
                   {testing ? "Testing..." : "Test Connection"}
                 </button>
 
-                <div className="flex gap-2">
+                <div className="flex flex-col-reverse sm:flex-row gap-2 w-full sm:w-auto">
                   <button
                     type="button"
                     onClick={() => setShowAddForm(false)}
-                    className="px-3 py-1.5 rounded-lg bg-surface border border-surface-border text-xs text-gray-300 hover:text-white"
+                    className="w-full sm:w-auto px-3 py-1.5 rounded-lg bg-surface border border-surface-border text-xs text-gray-300 hover:text-white text-center"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={saving}
-                    className="px-4 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-xs font-semibold text-white transition shadow"
+                    className="w-full sm:w-auto px-4 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-xs font-semibold text-white transition shadow text-center"
                   >
                     {saving ? "Saving..." : "Save Key"}
                   </button>
@@ -360,32 +360,32 @@ export function BrainModal({ isOpen, onClose, onBrainSwitched }: BrainModalProps
                 {keys.map((k) => (
                   <div
                     key={k.id}
-                    className={`p-3.5 flex items-center justify-between gap-4 transition ${
+                    className={`p-3 sm:p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 transition ${
                       k.isActive ? "bg-purple-950/20" : "hover:bg-surface-2/80"
                     }`}
                   >
-                    <div className="min-w-0 flex items-center gap-3">
+                    <div className="min-w-0 flex items-start sm:items-center gap-2.5 sm:gap-3 flex-1">
                       <div
-                        className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                        className={`w-2.5 h-2.5 rounded-full shrink-0 mt-1 sm:mt-0 ${
                           k.isActive ? "bg-accent-emerald shadow-[0_0_8px_#10b981]" : "bg-gray-600"
                         }`}
                       />
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-xs text-white truncate">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold text-xs text-white truncate max-w-[160px] xs:max-w-[220px] sm:max-w-none">
                             {k.label}
                           </span>
-                          <span className="text-[10px] uppercase font-mono px-1.5 py-0.2 rounded bg-surface border border-surface-border text-gray-300">
+                          <span className="text-[10px] uppercase font-mono px-1.5 py-0.2 rounded bg-surface border border-surface-border text-gray-300 shrink-0">
                             {k.provider} • {k.model}
                           </span>
                         </div>
-                        <div className="text-[11px] font-mono text-gray-400 mt-0.5">
+                        <div className="text-[11px] font-mono text-gray-400 mt-0.5 truncate">
                           {k.maskedKey}
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center gap-2 self-end sm:self-auto shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-surface-border/40 w-full sm:w-auto justify-end">
                       {k.isActive ? (
                         <span className="px-2.5 py-1 rounded-lg bg-emerald-950/80 border border-emerald-800 text-accent-emerald text-[11px] font-semibold">
                           Active Brain
@@ -415,10 +415,10 @@ export function BrainModal({ isOpen, onClose, onBrainSwitched }: BrainModalProps
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3.5 border-t border-surface-border bg-surface-2/50 flex justify-end">
+        <div className="px-4 sm:px-6 py-3 sm:py-3.5 border-t border-surface-border bg-surface-2/50 flex justify-end">
           <button
             onClick={onClose}
-            className="px-5 py-2 rounded-xl bg-surface-2 hover:bg-surface border border-surface-border text-xs font-semibold text-white transition"
+            className="w-full sm:w-auto px-5 py-2 rounded-xl bg-surface-2 hover:bg-surface border border-surface-border text-xs font-semibold text-white transition text-center"
           >
             Done
           </button>

@@ -88,16 +88,16 @@ export function LinkInputHero({ onLinksSubmitted }: LinkInputHeroProps) {
           </div>
         )}
 
-        <div className="mt-3 flex items-center justify-between gap-4">
+        <div className="mt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
           <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
-            <Sparkles className="w-3.5 h-3.5 text-accent-amber" />
+            <Sparkles className="w-3.5 h-3.5 text-accent-amber shrink-0" />
             <span>International support: automatically translates French, Italian, German & more to English</span>
           </div>
 
           <button
             type="submit"
             disabled={isSubmitting || !linksText.trim()}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-accent-blue hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-xs sm:text-sm text-white shadow-lg shadow-blue-500/20 transition-all font-semibold"
+            className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-accent-blue hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-xs sm:text-sm text-white shadow-lg shadow-blue-500/20 transition-all font-semibold w-full sm:w-auto shrink-0"
           >
             {isSubmitting ? (
               <span className="flex items-center gap-2">

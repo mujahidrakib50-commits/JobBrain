@@ -42,33 +42,33 @@ export function Header({
 
 
   return (
-    <header className="border-b border-surface-border bg-surface/80 backdrop-blur sticky top-0 z-40 px-4 lg:px-8 py-3.5 flex items-center justify-between">
+    <header className="border-b border-surface-border bg-surface/80 backdrop-blur sticky top-0 z-40 px-3 sm:px-6 lg:px-8 py-2.5 sm:py-3.5 flex items-center justify-between gap-2">
       {/* Brand */}
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-accent-blue via-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
-          <Cpu className="w-5 h-5 text-white" />
+      <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
+        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-accent-blue via-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/20 shrink-0">
+          <Cpu className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
         </div>
         <div>
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-lg tracking-tight text-white">JobBrain</span>
-            <span className="text-[10px] font-medium uppercase tracking-wider px-1.5 py-0.5 rounded bg-surface-2 border border-surface-border text-gray-400">
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <span className="font-bold text-base sm:text-lg tracking-tight text-white">JobBrain</span>
+            <span className="text-[9px] sm:text-[10px] font-medium uppercase tracking-wider px-1.5 py-0.5 rounded bg-surface-2 border border-surface-border text-gray-400">
               v1.0
             </span>
           </div>
-          <p className="text-xs text-gray-400">Autonomous Job Application Submitter</p>
+          <p className="text-xs text-gray-400 hidden sm:block">Autonomous Job Application Submitter</p>
         </div>
       </div>
 
       {/* Center / Right controls */}
-      <div className="flex items-center gap-3 sm:gap-4">
+      <div className="flex items-center gap-1.5 sm:gap-3">
         {/* Active Brain Indicator */}
         <button
           onClick={onOpenBrain}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-2 border border-surface-border hover:border-gray-600 transition text-xs group"
+          className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-lg bg-surface-2 border border-surface-border hover:border-gray-600 transition text-xs group shrink-0"
           title="Click to switch or configure AI Brain"
         >
           <span
-            className={`w-2 h-2 rounded-full ${
+            className={`w-2 h-2 rounded-full shrink-0 ${
               activeBrain
                 ? isQueueRunning
                   ? "bg-accent-blue animate-pulse shadow-[0_0_8px_#3b82f6]"
@@ -77,12 +77,12 @@ export function Header({
             }`}
           />
           {activeBrain ? (
-            <span className="font-semibold text-gray-200 group-hover:text-white transition">
+            <span className="font-semibold text-gray-200 group-hover:text-white transition max-w-[70px] xs:max-w-[100px] sm:max-w-[150px] truncate">
               {activeBrain.model}
             </span>
           ) : (
             <span className="text-accent-amber font-medium flex items-center gap-1">
-              Configure Brain
+              Brain
             </span>
           )}
         </button>
@@ -90,7 +90,7 @@ export function Header({
         {/* Start / Stop Submitting Toggle */}
         <button
           onClick={onToggleQueue}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-xs sm:text-sm shadow-md transition-all ${
+          className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg font-medium text-xs sm:text-sm shadow-md transition-all shrink-0 ${
             isQueueRunning
               ? "bg-accent-red/20 text-accent-red border border-accent-red/40 hover:bg-accent-red/30 shadow-red-500/10"
               : "bg-accent-emerald text-gray-950 font-bold hover:bg-emerald-400 shadow-emerald-500/20"
@@ -98,13 +98,17 @@ export function Header({
         >
           {isQueueRunning ? (
             <>
-              <Square className="w-3.5 h-3.5 fill-current" />
-              <span>Stop Submitting</span>
+              <Square className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-current shrink-0" />
+              <span>
+                Stop<span className="hidden sm:inline"> Submitting</span>
+              </span>
             </>
           ) : (
             <>
-              <Play className="w-3.5 h-3.5 fill-current" />
-              <span>Start Submitting</span>
+              <Play className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-current shrink-0" />
+              <span>
+                Start<span className="hidden sm:inline"> Submitting</span>
+              </span>
             </>
           )}
         </button>
