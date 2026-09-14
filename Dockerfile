@@ -31,7 +31,7 @@ COPY package*.json ./
 COPY prisma ./prisma/
 
 # Set default environment variables for build
-ENV DATABASE_URL="file:/app/dev.db"
+ENV DATABASE_URL="postgresql://neondb_owner:npg_rTdAz0Ss3qwH@ep-withered-waterfall-a5kqfcaa-pooler.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
 ENV APP_SECRET="jobbrain_secure_master_key_32_bytes_long_123456"
 ENV NEXTAUTH_SECRET="jobbrain_jwt_secret_token_change_in_prod_abcdef"
 ENV PORT=3000

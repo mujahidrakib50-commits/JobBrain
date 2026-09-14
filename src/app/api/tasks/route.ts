@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAuthUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { isQueueRunning, runQueueWorkerLoop } from "@/lib/queue";
+import { setQueueRunning } from "@/lib/queue";
 import { scrapeJobDetails } from "@/lib/browser";
 import { getActiveBrain } from "@/lib/ai";
 
@@ -119,11 +119,8 @@ export async function POST(req: Request) {
       }
     })().catch(console.error);
 
-    // Trigger user queue if running
-    const isRunning = await isQueueRunning(user.id);
-    if (isRunning) {
-      runQueueWorkerLoop(user.id).catch(console.error);
-    }
+    // Auto-start user queue immediately so background applying begins right away
+    await setQueueRunning(user.id, true);
 
     return NextResponse.json({ success: true, count: createdTasks.length, tasks: createdTasks });
   } catch (err: any) {

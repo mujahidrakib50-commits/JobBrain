@@ -6,6 +6,42 @@ import { getAccurateNetworkTime } from "./time";
 
 const activeUserLoops = new Set<string>();
 
+export function getActiveQueueCount(): number {
+  return activeUserLoops.size;
+}
+
+export async function resumeActiveQueues() {
+  try {
+    // 1. Resume any user queue marked as isRunning
+    const activeStates = await prisma.queueState.findMany({
+      where: { isRunning: true },
+    });
+
+    for (const state of activeStates) {
+      if (!activeUserLoops.has(state.id)) {
+        console.log(`[Queue] Resuming worker loop for user ${state.id}`);
+        runQueueWorkerLoop(state.id).catch(console.error);
+      }
+    }
+
+    // 2. Also check if any user has tasks pending in APPLYING status
+    const pendingUsers = await prisma.jobTask.findMany({
+      where: { status: "APPLYING" },
+      select: { userId: true },
+      distinct: ["userId"],
+    });
+
+    for (const p of pendingUsers) {
+      if (!activeUserLoops.has(p.userId)) {
+        console.log(`[Queue] Auto-starting pending tasks for user ${p.userId}`);
+        await setQueueRunning(p.userId, true);
+      }
+    }
+  } catch (err) {
+    console.error("[Queue] Error in resumeActiveQueues:", err);
+  }
+}
+
 export async function isQueueRunning(userId?: string): Promise<boolean> {
   if (!userId) {
     const anyRunning = await prisma.queueState.findFirst({
@@ -51,9 +87,22 @@ export async function runQueueWorkerLoop(userId: string) {
         orderBy: [{ queuePosition: "asc" }, { createdAt: "asc" }],
       });
 
-
       if (!nextTask) {
-        await new Promise((resolve) => setTimeout(resolve, 3000));
+        // Wait 5 seconds to ensure any concurrent batch additions are inserted
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+        const stillPending = await prisma.jobTask.findFirst({
+          where: { userId, status: "APPLYING" },
+        });
+
+        if (!stillPending) {
+          console.log(`[Queue] All tasks completed for user ${userId}. Halting loop.`);
+          await prisma.queueState.upsert({
+            where: { id: userId },
+            update: { isRunning: false },
+            create: { id: userId, isRunning: false },
+          });
+          break;
+        }
         continue;
       }
 
