@@ -12,6 +12,8 @@ export function middleware(request: NextRequest) {
     pathname.startsWith("/api/auth/register") ||
     pathname.startsWith("/api/auth/logout") ||
     pathname.startsWith("/api/gmail/callback") ||
+    pathname.startsWith("/api/health") ||
+    pathname.startsWith("/api/worker/") ||
     pathname.startsWith("/api/uploads/");
 
   // Check if token is structurally valid & not expired
